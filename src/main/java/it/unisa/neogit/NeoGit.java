@@ -1,9 +1,48 @@
 package it.unisa.neogit;
 
+import it.unisa.neogit.entity.Repository;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.util.HashMap;
 import java.util.List;
+import net.tomp2p.dht.FutureGet;
+import net.tomp2p.dht.PeerBuilderDHT;
+import net.tomp2p.dht.PeerDHT;
+import net.tomp2p.futures.FutureBootstrap;
+import net.tomp2p.p2p.Peer;
+import net.tomp2p.p2p.PeerBuilder;
+import net.tomp2p.peers.Number160;
+import net.tomp2p.storage.Data;
 
 public class NeoGit implements GitProtocol{
+
+  private Peer peer;
+  private PeerDHT dht;
+  private HashMap<String,File> repos;
+  private Repository cashedRepo;
+  final static private int DEFAULT_MASTER_PORT=4000;
+
+
+  public NeoGit(int _id, String _master_peer) throws Exception {
+
+    this.peer= new PeerBuilder(Number160.createHash(_id)).ports(DEFAULT_MASTER_PORT+_id).start();
+    this.dht = new PeerBuilderDHT(peer).start();
+    this.repos = new HashMap<>();
+
+    FutureBootstrap fb = peer.bootstrap().inetAddress(InetAddress.getByName(_master_peer)).ports(DEFAULT_MASTER_PORT).start();
+    fb.awaitUninterruptibly();
+    if(fb.isSuccess()) {
+      peer.discover().peerAddress(fb.bootstrapTo().iterator().next()).start().awaitUninterruptibly();
+    }else {
+      throw new Exception("Error in master peer bootstrap.");
+    }
+
+  }
 
   /**
    * Creates new repository in a directory
@@ -14,7 +53,24 @@ public class NeoGit implements GitProtocol{
    */
   @Override
   public boolean createRepository(String _repo_name, File _directory) {
-    return false;
+    if(_repo_name == null || _directory == null) return false;
+    try{
+
+      String directory = _directory+"/"+_repo_name+"/data.ng";
+
+      File file = new File(directory);
+      if(!file.getParentFile().mkdirs()){
+        return false;
+      }
+      this.cashedRepo = new Repository(_repo_name,peer.peerAddress().inetAddress().toString());
+      NeoGit.saveRepo(file,this.cashedRepo);
+
+      this.addRepoDHT(_repo_name);
+      this.repos.put(_repo_name,file);
+    }catch (Exception e){
+      e.printStackTrace();
+    }
+    return true;
   }
 
   /**
@@ -26,7 +82,17 @@ public class NeoGit implements GitProtocol{
    */
   @Override
   public boolean addFilesToRepository(String _repo_name, List<File> files) {
-    return false;
+    if(_repo_name == null || files == null) return false;
+    if(!this.repos.containsKey(_repo_name)) return false;
+
+    if(!this.cashedRepo.getName().equals(_repo_name)){
+      this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
+    }
+
+    this.cashedRepo.addFile(files);
+    NeoGit.saveRepo(this.repos.get(_repo_name),this.cashedRepo);
+
+    return true;
   }
 
   /**
@@ -38,7 +104,18 @@ public class NeoGit implements GitProtocol{
    */
   @Override
   public boolean commit(String _repo_name, String _message) {
-    return false;
+    if(_repo_name == null || _message == null) return false;
+    if(!this.repos.containsKey(_repo_name)) return false;
+
+    if(!this.cashedRepo.getName().equals(_repo_name)){
+      this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
+    }
+
+    this.cashedRepo.commit(_message);
+    this.cashedRepo.setCanCommit(true);
+    NeoGit.saveRepo(this.repos.get(_repo_name),this.cashedRepo);
+
+    return true;
   }
 
   /**
@@ -50,7 +127,23 @@ public class NeoGit implements GitProtocol{
    */
   @Override
   public String push(String _repo_name) {
-    return null;
+    if(_repo_name == null) return null;
+
+    if(!this.repos.containsKey(_repo_name)) return null;
+
+    if(!this.cashedRepo.getName().equals(_repo_name)){
+      this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
+    }
+    if(!this.cashedRepo.isCanCommit()) return null;
+
+    try {
+      this.addRepoDHT(_repo_name);
+      this.cashedRepo.setCanCommit(false);
+    }catch (Exception e){
+      e.printStackTrace();
+    }
+
+    return "done";
   }
 
   /**
@@ -62,6 +155,61 @@ public class NeoGit implements GitProtocol{
    */
   @Override
   public String pull(String _repo_name) {
+    try {
+      FutureGet futureGet = this.dht.get(Number160.createHash(_repo_name)).start();
+      futureGet.awaitUninterruptibly();
+      if (futureGet.isSuccess()) {
+        Repository repo;
+        repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+        System.out.println(repo);
+      }
+    }catch (Exception e) {
+      e.printStackTrace();
+    }
     return null;
   }
+
+  private void addRepoDHT(String _repo_name) throws IOException {
+    FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
+    futureGet.awaitUninterruptibly();
+    if (futureGet.isSuccess() && futureGet.isEmpty())
+      this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
+  }
+
+  private static Repository loadRepo(File repoFile){
+
+    Repository result = null;
+
+    try{
+      FileInputStream fin = new FileInputStream(repoFile);
+      ObjectInputStream ois = new ObjectInputStream(fin);
+      result = (Repository) ois.readObject();
+      ois.close();
+
+    }catch (Exception e){
+      e.printStackTrace();
+    }
+
+    return result;
+
+  }
+
+  private static boolean saveRepo(File repoFile,Repository repo){
+
+    try{
+      FileOutputStream fout = new FileOutputStream(repoFile);
+      ObjectOutputStream oos = new ObjectOutputStream(fout);
+      oos.writeObject(repo);
+      oos.close();
+      return true;
+
+    }catch (Exception e){
+      e.printStackTrace();
+    }
+
+    return false;
+
+  }
+
+
 }

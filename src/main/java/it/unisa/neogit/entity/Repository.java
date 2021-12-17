@@ -1,14 +1,17 @@
 package it.unisa.neogit.entity;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 public class Repository implements Serializable {
 
   private String name;
   private Stack<Commit> commits;
-  private ArrayList<String> files;
+  private ArrayList<File> files;
+  private boolean canCommit;
   private String userName;
 
   public Repository(String name, String userName) {
@@ -16,6 +19,7 @@ public class Repository implements Serializable {
     this.userName = userName;
     this.commits = new Stack<>();
     this.files = new ArrayList<>();
+    this.canCommit = false;
   }
 
   public String getName() {
@@ -30,18 +34,6 @@ public class Repository implements Serializable {
     return commits;
   }
 
-  public void setCommits(Stack<Commit> commits) {
-    this.commits = commits;
-  }
-
-  public ArrayList<String> getFiles() {
-    return files;
-  }
-
-  public void setFiles(ArrayList<String> files) {
-    this.files = files;
-  }
-
   public String getUserName() {
     return userName;
   }
@@ -50,14 +42,21 @@ public class Repository implements Serializable {
     this.userName = userName;
   }
 
-  @Override
-  public String toString() {
-    return "Repository{" +
-        "name='" + name + '\'' +
-        ", commits=" + commits +
-        ", files=" + files +
-        ", userName='" + userName + '\'' +
-        '}';
+  public boolean isCanCommit() {
+    return canCommit;
+  }
+
+  public void setCanCommit(boolean canCommit) {
+    this.canCommit = canCommit;
+  }
+
+  public void addFile(List<File> files){
+    this.files.addAll(files);
+  }
+
+  public void commit(String message){
+    this.commits.add(new Commit(message,userName,(ArrayList<File>) this.files.clone()));
+    this.files.clear();
   }
 
   @Override
@@ -71,6 +70,9 @@ public class Repository implements Serializable {
 
     Repository that = (Repository) o;
 
+    if (canCommit != that.canCommit) {
+      return false;
+    }
     if (!name.equals(that.name)) {
       return false;
     }
@@ -88,7 +90,19 @@ public class Repository implements Serializable {
     int result = name.hashCode();
     result = 31 * result + commits.hashCode();
     result = 31 * result + files.hashCode();
+    result = 31 * result + (canCommit ? 1 : 0);
     result = 31 * result + userName.hashCode();
     return result;
+  }
+
+  @Override
+  public String toString() {
+    return "Repository{" +
+        "name='" + name + '\'' +
+        ", commits=" + commits +
+        ", files=" + files +
+        ", canCommit=" + canCommit +
+        ", userName='" + userName + '\'' +
+        '}';
   }
 }

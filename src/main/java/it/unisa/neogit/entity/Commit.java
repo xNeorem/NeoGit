@@ -1,8 +1,11 @@
 package it.unisa.neogit.entity;
 
+import java.io.File;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.UUID;
 
 public class Commit implements Serializable {
 
@@ -12,21 +15,19 @@ public class Commit implements Serializable {
   private String message;
   private Date date;
   private String user;
+  private ArrayList<File> files;
 
 
-  public Commit(String message, String user) {
+  public Commit(String message, String user, ArrayList<File> files) {
     this.message = message;
     this.user = user;
-    this.uid = "";
+    this.uid = UUID.randomUUID().toString();
     this.date = new Date(System.currentTimeMillis());
+    this.files = files;
   }
 
   public String getUid() {
     return uid;
-  }
-
-  public void setUid(String uid) {
-    this.uid = uid;
   }
 
   public String getMessage() {
@@ -52,6 +53,8 @@ public class Commit implements Serializable {
   public void setUser(String user) {
     this.user = user;
   }
+
+  public ArrayList<File> getFiles(){ return (ArrayList<File>) this.files.clone();}
 
   @Override
   public String toString() {
