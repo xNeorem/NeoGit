@@ -13,7 +13,7 @@ public class Commit implements Serializable {
 
   private String uid;
   private String message;
-  private Date date;
+  private String date;
   private String user;
   private ArrayList<File> files;
 
@@ -22,7 +22,7 @@ public class Commit implements Serializable {
     this.message = message;
     this.user = user;
     this.uid = UUID.randomUUID().toString();
-    this.date = new Date(System.currentTimeMillis());
+    this.date = formatter.format(new Date(System.currentTimeMillis()));
     this.files = files;
   }
 
@@ -38,11 +38,11 @@ public class Commit implements Serializable {
     this.message = message;
   }
 
-  public Date getDate() {
+  public String getDate() {
     return date;
   }
 
-  public void setDate(Date date) {
+  public void setDate(String date) {
     this.date = date;
   }
 
@@ -55,16 +55,6 @@ public class Commit implements Serializable {
   }
 
   public ArrayList<File> getFiles(){ return (ArrayList<File>) this.files.clone();}
-
-  @Override
-  public String toString() {
-    return "Commit{" +
-        "uid='" + uid + '\'' +
-        ", message='" + message + '\'' +
-        ", date=" + date +
-        ", user='" + user + '\'' +
-        '}';
-  }
 
   @Override
   public boolean equals(Object o) {
@@ -86,7 +76,10 @@ public class Commit implements Serializable {
     if (!date.equals(commit.date)) {
       return false;
     }
-    return user.equals(commit.user);
+    if (!user.equals(commit.user)) {
+      return false;
+    }
+    return files.equals(commit.files);
   }
 
   @Override
@@ -95,6 +88,18 @@ public class Commit implements Serializable {
     result = 31 * result + message.hashCode();
     result = 31 * result + date.hashCode();
     result = 31 * result + user.hashCode();
+    result = 31 * result + files.hashCode();
     return result;
+  }
+
+  @Override
+  public String toString() {
+    return "Commit{" +
+        "uid='" + uid + '\'' +
+        ", message='" + message + '\'' +
+        ", date=" + date +
+        ", user='" + user + '\'' +
+        ", files=" + files +
+        '}';
   }
 }

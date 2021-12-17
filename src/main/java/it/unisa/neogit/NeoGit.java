@@ -1,10 +1,10 @@
 package it.unisa.neogit;
 
 import it.unisa.neogit.entity.Repository;
+import it.unisa.neogit.entity.RepositoryP2P;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
@@ -24,7 +24,7 @@ public class NeoGit implements GitProtocol{
   private Peer peer;
   private PeerDHT dht;
   private HashMap<String,File> repos;
-  private Repository cashedRepo;
+  private RepositoryP2P cashedRepo;
   final static private int DEFAULT_MASTER_PORT=4000;
 
 
@@ -62,10 +62,14 @@ public class NeoGit implements GitProtocol{
       if(!file.getParentFile().mkdirs()){
         return false;
       }
-      this.cashedRepo = new Repository(_repo_name,peer.peerAddress().inetAddress().toString());
+      this.cashedRepo = new RepositoryP2P(_repo_name,peer.peerAddress().inetAddress().toString());
       NeoGit.saveRepo(file,this.cashedRepo);
 
-      this.addRepoDHT(_repo_name);
+      FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
+      futureGet.awaitUninterruptibly();
+      if (futureGet.isSuccess() && futureGet.isEmpty())
+        this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
+
       this.repos.put(_repo_name,file);
     }catch (Exception e){
       e.printStackTrace();
@@ -136,10 +140,16 @@ public class NeoGit implements GitProtocol{
     }
     if(!this.cashedRepo.isCanCommit()) return null;
 
+    this.cashedRepo.setCanCommit(false);
+
     try {
-      this.addRepoDHT(_repo_name);
-      this.cashedRepo.setCanCommit(false);
+      FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
+      futureGet.awaitUninterruptibly();
+      if (futureGet.isSuccess())
+        this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
+
     }catch (Exception e){
+      this.cashedRepo.setCanCommit(true);
       e.printStackTrace();
     }
 
@@ -169,21 +179,14 @@ public class NeoGit implements GitProtocol{
     return null;
   }
 
-  private void addRepoDHT(String _repo_name) throws IOException {
-    FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
-    futureGet.awaitUninterruptibly();
-    if (futureGet.isSuccess() && futureGet.isEmpty())
-      this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
-  }
+  private static RepositoryP2P loadRepo(File repoFile){
 
-  private static Repository loadRepo(File repoFile){
-
-    Repository result = null;
+    RepositoryP2P result = null;
 
     try{
       FileInputStream fin = new FileInputStream(repoFile);
       ObjectInputStream ois = new ObjectInputStream(fin);
-      result = (Repository) ois.readObject();
+      result = (RepositoryP2P) ois.readObject();
       ois.close();
 
     }catch (Exception e){
