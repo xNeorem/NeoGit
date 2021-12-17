@@ -10,7 +10,9 @@ public class Repository implements Serializable {
 
   private String name;
   private final Stack<Commit> commits;
+  //TODO : Change to HashSet
   private final ArrayList<File> files;
+  //TODO : Add Staged fileSet
   private boolean canCommit;
   private String userName;
 

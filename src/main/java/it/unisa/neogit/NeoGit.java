@@ -182,6 +182,7 @@ public class NeoGit implements GitProtocol{
    */
   @Override
   public String pull(String _repo_name) {
+    //TODO: Check difference
     try {
       FutureGet futureGet = this.dht.get(Number160.createHash(_repo_name)).start();
       futureGet.awaitUninterruptibly();
