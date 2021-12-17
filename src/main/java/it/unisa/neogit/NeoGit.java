@@ -14,9 +14,11 @@ import net.tomp2p.dht.FutureGet;
 import net.tomp2p.dht.PeerBuilderDHT;
 import net.tomp2p.dht.PeerDHT;
 import net.tomp2p.futures.FutureBootstrap;
+import net.tomp2p.futures.FutureDirect;
 import net.tomp2p.p2p.Peer;
 import net.tomp2p.p2p.PeerBuilder;
 import net.tomp2p.peers.Number160;
+import net.tomp2p.peers.PeerAddress;
 import net.tomp2p.storage.Data;
 
 public class NeoGit implements GitProtocol{
@@ -42,6 +44,14 @@ public class NeoGit implements GitProtocol{
       throw new Exception("Error in master peer bootstrap.");
     }
 
+    peer.objectDataReply((sender, request) -> {
+      if(!this.repos.containsKey(request)) return false;
+      RepositoryP2P repo = loadRepo(this.repos.get(request));
+      repo.setHasIncomingChanges(true);
+      saveRepo(this.repos.get(request),repo);
+      return true;
+    });
+
   }
 
   /**
@@ -63,6 +73,7 @@ public class NeoGit implements GitProtocol{
         return false;
       }
       this.cashedRepo = new RepositoryP2P(_repo_name,peer.peerAddress().inetAddress().toString());
+      this.cashedRepo.addPeerAndress(peer.peerAddress());
       NeoGit.saveRepo(file,this.cashedRepo);
 
       FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
@@ -139,6 +150,7 @@ public class NeoGit implements GitProtocol{
       this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
     }
     if(!this.cashedRepo.isCanCommit()) return null;
+    if(this.cashedRepo.isHasIncomingChanges()) return null;
 
     this.cashedRepo.setCanCommit(false);
 
@@ -147,6 +159,11 @@ public class NeoGit implements GitProtocol{
       futureGet.awaitUninterruptibly();
       if (futureGet.isSuccess())
         this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
+
+      for (PeerAddress peer : this.cashedRepo.getContributors()){
+          FutureDirect futureDirect = this.dht.peer().sendDirect(peer).object(this.cashedRepo.getName()).start();
+          futureDirect.awaitUninterruptibly();
+      }
 
     }catch (Exception e){
       this.cashedRepo.setCanCommit(true);

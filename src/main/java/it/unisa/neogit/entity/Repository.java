@@ -9,8 +9,8 @@ import java.util.Stack;
 public class Repository implements Serializable {
 
   private String name;
-  private Stack<Commit> commits;
-  private ArrayList<File> files;
+  private final Stack<Commit> commits;
+  private final ArrayList<File> files;
   private boolean canCommit;
   private String userName;
 
