@@ -3,6 +3,7 @@ package it.unisa.neogit.entity;
 import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
 
@@ -10,9 +11,8 @@ public class Repository implements Serializable {
 
   private String name;
   private final Stack<Commit> commits;
-  //TODO : Change to HashSet
-  private final ArrayList<File> files;
-  //TODO : Add Staged fileSet
+  private final HashSet<File> files;
+  private final HashSet<File> stagedFiles;
   private boolean canCommit;
   private String userName;
 
@@ -20,7 +20,8 @@ public class Repository implements Serializable {
     this.name = name;
     this.userName = userName;
     this.commits = new Stack<>();
-    this.files = new ArrayList<>();
+    this.files = new HashSet<>();
+    this.stagedFiles = new HashSet<>();
     this.canCommit = false;
   }
 
@@ -53,12 +54,13 @@ public class Repository implements Serializable {
   }
 
   public void addFile(List<File> files){
+    this.stagedFiles.addAll(files);
     this.files.addAll(files);
   }
 
   public void commit(String message){
-    this.commits.add(new Commit(message,userName,(ArrayList<File>) this.files.clone()));
-    this.files.clear();
+    this.commits.add(new Commit(message,userName,(HashSet<File>) this.stagedFiles.clone()));
+    this.stagedFiles.clear();
   }
 
   @Override
