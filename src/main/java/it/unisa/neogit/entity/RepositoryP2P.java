@@ -8,6 +8,7 @@ public class RepositoryP2P extends Repository implements Serializable {
 
   private final HashSet<PeerAddress> contributors;
   private boolean hasIncomingChanges;
+  private int commitCount;
 
 
 
@@ -15,6 +16,21 @@ public class RepositoryP2P extends Repository implements Serializable {
     super(name, userName);
     this.contributors = new HashSet<>();
     this.hasIncomingChanges = false;
+    this.commitCount = 0;
+  }
+
+  @Override
+  public void commit(String message) {
+    super.commit(message);
+    this.commitCount += 1;
+  }
+
+  public int getCommitCount() {
+    return commitCount;
+  }
+
+  public void setCommitCount(int commitCount) {
+    this.commitCount = commitCount;
   }
 
   public HashSet<PeerAddress> getContributors(){
@@ -50,6 +66,9 @@ public class RepositoryP2P extends Repository implements Serializable {
     if (hasIncomingChanges != that.hasIncomingChanges) {
       return false;
     }
+    if (commitCount != that.commitCount) {
+      return false;
+    }
     return contributors.equals(that.contributors);
   }
 
@@ -58,15 +77,16 @@ public class RepositoryP2P extends Repository implements Serializable {
     int result = super.hashCode();
     result = 31 * result + contributors.hashCode();
     result = 31 * result + (hasIncomingChanges ? 1 : 0);
+    result = 31 * result + commitCount;
     return result;
   }
-
 
   @Override
   public String toString() {
     return "RepositoryP2P{" +
         "contributors=" + contributors +
         ", hasIncomingChanges=" + hasIncomingChanges +
+        ", commitCount=" + commitCount +
         "} " + super.toString();
   }
 }

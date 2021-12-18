@@ -1,7 +1,9 @@
 package it.unisa.neogit;
 
+import it.unisa.neogit.entity.Commit;
 import it.unisa.neogit.entity.Repository;
 import it.unisa.neogit.entity.RepositoryP2P;
+import it.unisa.neogit.entity.RepostitoryFile;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -9,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import net.tomp2p.dht.FutureGet;
 import net.tomp2p.dht.PeerBuilderDHT;
@@ -27,6 +30,7 @@ public class NeoGit implements GitProtocol{
   private PeerDHT dht;
   private HashMap<String,File> repos;
   private RepositoryP2P cashedRepo;
+  private String user;
   final static private int DEFAULT_MASTER_PORT=4000;
 
 
@@ -35,6 +39,7 @@ public class NeoGit implements GitProtocol{
     this.peer= new PeerBuilder(Number160.createHash(_id)).ports(DEFAULT_MASTER_PORT+_id).start();
     this.dht = new PeerBuilderDHT(peer).start();
     this.repos = new HashMap<>();
+    this.user = peer.peerAddress().inetAddress().toString();
 
     FutureBootstrap fb = peer.bootstrap().inetAddress(InetAddress.getByName(_master_peer)).ports(DEFAULT_MASTER_PORT).start();
     fb.awaitUninterruptibly();
@@ -72,7 +77,7 @@ public class NeoGit implements GitProtocol{
       if(!file.getParentFile().mkdirs()){
         return false;
       }
-      this.cashedRepo = new RepositoryP2P(_repo_name,peer.peerAddress().inetAddress().toString());
+      this.cashedRepo = new RepositoryP2P(_repo_name,this.user);
       this.cashedRepo.addPeerAndress(peer.peerAddress());
       NeoGit.saveRepo(file,this.cashedRepo);
 
@@ -104,7 +109,7 @@ public class NeoGit implements GitProtocol{
       this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
     }
 
-    this.cashedRepo.addFile(files);
+    this.cashedRepo.addFile(RepostitoryFile.fromList(files,this.user));
     NeoGit.saveRepo(this.repos.get(_repo_name),this.cashedRepo);
 
     return true;
@@ -153,6 +158,8 @@ public class NeoGit implements GitProtocol{
     if(this.cashedRepo.isHasIncomingChanges()) return null;
 
     this.cashedRepo.setCanCommit(false);
+    int commitCount = this.cashedRepo.getCommitCount();
+    this.cashedRepo.setCommitCount(0);
 
     try {
       FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
@@ -167,6 +174,7 @@ public class NeoGit implements GitProtocol{
 
     }catch (Exception e){
       this.cashedRepo.setCanCommit(true);
+      this.cashedRepo.setCommitCount(commitCount);
       e.printStackTrace();
     }
 
@@ -182,7 +190,7 @@ public class NeoGit implements GitProtocol{
    */
   @Override
   public String pull(String _repo_name) {
-    //TODO: Check difference
+
     try {
       FutureGet futureGet = this.dht.get(Number160.createHash(_repo_name)).start();
       futureGet.awaitUninterruptibly();
@@ -195,6 +203,30 @@ public class NeoGit implements GitProtocol{
       e.printStackTrace();
     }
     return null;
+  }
+
+  private static void addIncomingChanges(File local,File incoming,String user){
+    RepositoryP2P localRepo = loadRepo(local);
+    RepositoryP2P incomingRepo = loadRepo(incoming);
+    HashSet<RepostitoryFile> localFiles = localRepo.getFiles();
+    HashSet<RepostitoryFile> incomingFiles = incomingRepo.getFiles();
+
+    for(RepostitoryFile file : incomingFiles){
+      if(localFiles.contains(file) && !file.getLastContributor().equals(user)){
+        //TODO: duplicate file
+      }
+    }
+
+    Commit lastCommitPushed = localRepo.getCommits().get(localRepo.getCommits().size() - localRepo
+        .getCommitCount());
+
+    Commit incomingCommit = incomingRepo.getCommits().pop();
+    while(!lastCommitPushed.equals(incomingCommit))
+      localRepo.addCommit(incomingCommit);
+
+    localRepo.setCommitCount(0);
+    saveRepo(local,localRepo);
+
   }
 
   private static RepositoryP2P loadRepo(File repoFile){

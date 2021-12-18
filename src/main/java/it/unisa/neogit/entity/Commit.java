@@ -16,10 +16,10 @@ public class Commit implements Serializable {
   private String message;
   private String date;
   private String user;
-  private HashSet<File> files;
+  private HashSet<RepostitoryFile> files;
 
 
-  public Commit(String message, String user, HashSet<File> files) {
+  public Commit(String message, String user, HashSet<RepostitoryFile> files) {
     this.message = message;
     this.user = user;
     this.uid = UUID.randomUUID().toString();
@@ -55,7 +55,18 @@ public class Commit implements Serializable {
     this.user = user;
   }
 
-  public HashSet<File> getFiles(){ return (HashSet<File>) this.files.clone();}
+  public HashSet<RepostitoryFile> getFiles(){ return (HashSet<RepostitoryFile>) this.files.clone();}
+
+//  public static ArrayList<File> hasConflict(Commit thisCommit, Commit thatCommit){
+//
+//    ArrayList<File> result = new ArrayList<>();
+//
+//    for(File file : thisCommit.getFiles())
+//      if(thatCommit.getFiles().contains(file))
+//        result.add(file);
+//
+//    return result;
+//  }
 
   @Override
   public boolean equals(Object o) {
