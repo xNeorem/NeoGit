@@ -12,6 +12,11 @@ public class NeoGitRunner {
       NeoGit neoGit = new NeoGit(0,"127.0.0.1");
       neoGit.createRepository("maro",new File(System.getProperty("user.dir")));
       neoGit.createRepository("patatern",new File(System.getProperty("user.dir")));
+
+      NeoGit neoGit2 = new NeoGit(0,"127.0.0.1");
+      neoGit2.createRepository("maro",new File(System.getProperty("user.dir")+"/neogit2"));
+      neoGit2.createRepository("patatern",new File(System.getProperty("user.dir")+"/neogit2"));
+
       ArrayList<File> files = new ArrayList<>();
       files.add(new File("aa.txt"));
       files.add(new File("ab.txt"));
@@ -26,7 +31,18 @@ public class NeoGitRunner {
 
       neoGit.push("maro");
 
-      neoGit.pull("maro");
+
+      neoGit2.addFilesToRepository("maro",files);
+      neoGit2.commit("maro","marooonnn");
+
+      neoGit2.addFilesToRepository("patatern",files);
+      neoGit2.commit("patatern","marooonnn");
+
+      neoGit2.addFilesToRepository("maro",files);
+
+      neoGit2.push("maro");
+
+
     } catch (Exception e) {
       e.printStackTrace();
     }

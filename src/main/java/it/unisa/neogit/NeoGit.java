@@ -39,7 +39,7 @@ public class NeoGit implements GitProtocol{
     this.peer= new PeerBuilder(Number160.createHash(_id)).ports(DEFAULT_MASTER_PORT+_id).start();
     this.dht = new PeerBuilderDHT(peer).start();
     this.repos = new HashMap<>();
-    this.user = peer.peerAddress().inetAddress().toString();
+    this.user = Integer.toString(_id);
 
     FutureBootstrap fb = peer.bootstrap().inetAddress(InetAddress.getByName(_master_peer)).ports(DEFAULT_MASTER_PORT).start();
     fb.awaitUninterruptibly();
@@ -77,14 +77,23 @@ public class NeoGit implements GitProtocol{
       if(!file.getParentFile().mkdirs()){
         return false;
       }
-      this.cashedRepo = new RepositoryP2P(_repo_name,this.user);
-      this.cashedRepo.addPeerAndress(peer.peerAddress());
-      NeoGit.saveRepo(file,this.cashedRepo);
 
       FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
       futureGet.awaitUninterruptibly();
-      if (futureGet.isSuccess() && futureGet.isEmpty())
+      if (futureGet.isSuccess()){
+         if(futureGet.isEmpty()){
+           this.cashedRepo = new RepositoryP2P(_repo_name,this.user);
+           this.cashedRepo.addPeerAndress(peer.peerAddress());
+         }
+         else{
+           this.cashedRepo = (RepositoryP2P) futureGet.dataMap().values().iterator().next().object();
+           this.cashedRepo.addPeerAndress(this.peer.peerAddress());
+         }
+
         this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
+        NeoGit.saveRepo(file,this.cashedRepo);
+      }
+
 
       this.repos.put(_repo_name,file);
     }catch (Exception e){
@@ -151,9 +160,8 @@ public class NeoGit implements GitProtocol{
 
     if(!this.repos.containsKey(_repo_name)) return null;
 
-    if(!this.cashedRepo.getName().equals(_repo_name)){
-      this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
-    }
+    this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
+
     if(!this.cashedRepo.isCanCommit()) return null;
     if(this.cashedRepo.isHasIncomingChanges()) return null;
 
@@ -191,13 +199,16 @@ public class NeoGit implements GitProtocol{
   @Override
   public String pull(String _repo_name) {
 
+    if(_repo_name == null) return null;
+    if(!this.repos.containsKey(_repo_name)) return null;
+
     try {
       FutureGet futureGet = this.dht.get(Number160.createHash(_repo_name)).start();
       futureGet.awaitUninterruptibly();
       if (futureGet.isSuccess()) {
-        Repository repo;
-        repo = (Repository) futureGet.dataMap().values().iterator().next().object();
-        System.out.println(repo);
+        RepositoryP2P incoming;
+        incoming = (RepositoryP2P) futureGet.dataMap().values().iterator().next().object();
+        NeoGit.addIncomingChanges(this.repos.get(_repo_name),incoming,this.user);
       }
     }catch (Exception e) {
       e.printStackTrace();
@@ -205,15 +216,15 @@ public class NeoGit implements GitProtocol{
     return null;
   }
 
-  private static void addIncomingChanges(File local,File incoming,String user){
+  private static void addIncomingChanges(File local,RepositoryP2P incomingRepo ,String user){
     RepositoryP2P localRepo = loadRepo(local);
-    RepositoryP2P incomingRepo = loadRepo(incoming);
     HashSet<RepostitoryFile> localFiles = localRepo.getFiles();
     HashSet<RepostitoryFile> incomingFiles = incomingRepo.getFiles();
 
     for(RepostitoryFile file : incomingFiles){
       if(localFiles.contains(file) && !file.getLastContributor().equals(user)){
         //TODO: duplicate file
+        System.out.println(file+"need to be duplicate");
       }
     }
 
