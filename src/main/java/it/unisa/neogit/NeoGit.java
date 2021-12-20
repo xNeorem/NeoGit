@@ -146,7 +146,7 @@ public class NeoGit implements GitProtocol{
     if(_repo_name == null || _message == null) return false;
     if(!this.repos.containsKey(_repo_name)) return false;
 
-    if(!this.cashedRepo.getName().equals(_repo_name)){
+    if(this.cashedRepo == null || !this.cashedRepo.getName().equals(_repo_name)){
       this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
     }
 
@@ -172,10 +172,10 @@ public class NeoGit implements GitProtocol{
     this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
 
     if(!this.cashedRepo.isCanCommit()) return "Nothing to commit.";
-    if(this.cashedRepo.isHasIncomingChanges()) return _repo_name+" in not up to date\n Pull new changes.";
+    if(this.cashedRepo.isHasIncomingChanges()) return _repo_name+" in not up to date\nPull new changes.";
     else{
-      if(!this.cashedRepo.equals(this.pullRepo(_repo_name)))
-        return _repo_name+" in not up to date\n Pull new changes.";
+      if(!this.cashedRepo.isUpToDate(this.pullRepo(_repo_name)))
+        return _repo_name+" is not up to date\nPull new changes.";
     }
 
     this.cashedRepo.setCanCommit(false);
@@ -200,7 +200,7 @@ public class NeoGit implements GitProtocol{
       return "Error during pushing "+_repo_name+".";
     }
 
-    return commitCount+" pushed on "+_repo_name;
+    return commitCount+"commit pushed on "+_repo_name;
   }
 
   /**
@@ -220,7 +220,7 @@ public class NeoGit implements GitProtocol{
     RepositoryP2P incoming = this.pullRepo(_repo_name);
     if(incoming == null) return "error while pulling "+_repo_name;
 
-    int newCommits = NeoGit.addIncomingChanges(this.repos.get(_repo_name),incoming,this.user);
+    int newCommits = this.addIncomingChanges(this.repos.get(_repo_name),incoming,this.user);
     if(newCommits == 0){
       return _repo_name+" it's up to date.";
     }
@@ -240,7 +240,7 @@ public class NeoGit implements GitProtocol{
     return null;
   }
 
-  private static int addIncomingChanges(File local,RepositoryP2P incomingRepo ,String user){
+  private int addIncomingChanges(File local,RepositoryP2P incomingRepo ,String user){
     RepositoryP2P localRepo = loadRepo(local);
     HashSet<RepostitoryFile> localFiles = localRepo.getFiles();
     HashSet<RepostitoryFile> incomingFiles = incomingRepo.getFiles();
@@ -264,6 +264,7 @@ public class NeoGit implements GitProtocol{
 
     localRepo.setCommitCount(0);
     saveRepo(local,localRepo);
+    this.cashedRepo = localRepo;
 
     return count;
   }

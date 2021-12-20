@@ -41,7 +41,8 @@ public class NeoGitRunner {
 
       neoGit.addFilesToRepository("maro",files);
 
-      neoGit.push("maro");
+      System.out.println(neoGit.push("maro"));
+      System.out.println(neoGit.pull("maro"));
 
 
     } catch (Exception e) {

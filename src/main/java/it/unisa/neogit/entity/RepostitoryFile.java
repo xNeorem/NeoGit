@@ -38,4 +38,28 @@ public class RepostitoryFile implements Serializable {
   public void setLastContributor(String lastContributor) {
     this.lastContributor = lastContributor;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    RepostitoryFile that = (RepostitoryFile) o;
+
+    if (!file.equals(that.file)) {
+      return false;
+    }
+    return lastContributor.equals(that.lastContributor);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = file.hashCode();
+    result = 31 * result + lastContributor.hashCode();
+    return result;
+  }
 }

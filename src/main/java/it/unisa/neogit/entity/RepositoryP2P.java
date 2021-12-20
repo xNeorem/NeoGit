@@ -49,6 +49,15 @@ public class RepositoryP2P extends Repository implements Serializable {
     this.hasIncomingChanges = hasIncomingChanges;
   }
 
+  public boolean isUpToDate(RepositoryP2P that){
+
+    if(that.getCommits().size() == 0)
+      return true;
+
+    return this.getCommits().pop().equals(that.getCommits().pop());
+
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
