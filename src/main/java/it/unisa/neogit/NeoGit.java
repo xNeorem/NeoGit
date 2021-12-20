@@ -31,15 +31,17 @@ public class NeoGit implements GitProtocol{
   private HashMap<String,File> repos;
   private RepositoryP2P cashedRepo;
   private String user;
+  private String reposPath;
   final static private int DEFAULT_MASTER_PORT=4000;
 
 
-  public NeoGit(int _id, String _master_peer) throws Exception {
+  public NeoGit(int _id, String _master_peer,String path) throws Exception {
 
     this.peer= new PeerBuilder(Number160.createHash(_id)).ports(DEFAULT_MASTER_PORT+_id).start();
     this.dht = new PeerBuilderDHT(peer).start();
     this.repos = new HashMap<>();
     this.user = Integer.toString(_id);
+    this.reposPath = path + "/repos.ng";
 
     FutureBootstrap fb = peer.bootstrap().inetAddress(InetAddress.getByName(_master_peer)).ports(DEFAULT_MASTER_PORT).start();
     fb.awaitUninterruptibly();
@@ -56,6 +58,12 @@ public class NeoGit implements GitProtocol{
       saveRepo(this.repos.get(request),repo);
       return true;
     });
+
+    File reposFile = new File(this.reposPath);
+    if(reposFile.exists() && !reposFile.isDirectory())
+      this.repos = NeoGit.loadRepos(reposFile);
+    else
+      NeoGit.saveRepos(reposFile,this.repos);
 
   }
 
@@ -96,6 +104,8 @@ public class NeoGit implements GitProtocol{
 
 
       this.repos.put(_repo_name,file);
+      NeoGit.saveRepos(new File(this.reposPath),this.repos);
+
     }catch (Exception e){
       e.printStackTrace();
     }
@@ -156,14 +166,17 @@ public class NeoGit implements GitProtocol{
    */
   @Override
   public String push(String _repo_name) {
-    if(_repo_name == null) return null;
-
-    if(!this.repos.containsKey(_repo_name)) return null;
+    if(_repo_name == null) return "Repository name can not be null.";
+    if(!this.repos.containsKey(_repo_name)) return "Can not push unknow repo\nCreate repository first.";
 
     this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
 
-    if(!this.cashedRepo.isCanCommit()) return null;
-    if(this.cashedRepo.isHasIncomingChanges()) return null;
+    if(!this.cashedRepo.isCanCommit()) return "Nothing to commit.";
+    if(this.cashedRepo.isHasIncomingChanges()) return _repo_name+" in not up to date\n Pull new changes.";
+    else{
+      if(!this.cashedRepo.equals(this.pullRepo(_repo_name)))
+        return _repo_name+" in not up to date\n Pull new changes.";
+    }
 
     this.cashedRepo.setCanCommit(false);
     int commitCount = this.cashedRepo.getCommitCount();
@@ -184,9 +197,10 @@ public class NeoGit implements GitProtocol{
       this.cashedRepo.setCanCommit(true);
       this.cashedRepo.setCommitCount(commitCount);
       e.printStackTrace();
+      return "Error during pushing "+_repo_name+".";
     }
 
-    return "done";
+    return commitCount+" pushed on "+_repo_name;
   }
 
   /**
@@ -199,24 +213,34 @@ public class NeoGit implements GitProtocol{
   @Override
   public String pull(String _repo_name) {
 
-    if(_repo_name == null) return null;
-    if(!this.repos.containsKey(_repo_name)) return null;
+    if(_repo_name == null) return "Repository name can not be null.";
+    if(!this.repos.containsKey(_repo_name)) return "Can not push unknow repo\nCreate repository first.";
 
+
+    RepositoryP2P incoming = this.pullRepo(_repo_name);
+    if(incoming == null) return "error while pulling "+_repo_name;
+
+    int newCommits = NeoGit.addIncomingChanges(this.repos.get(_repo_name),incoming,this.user);
+    if(newCommits == 0){
+      return _repo_name+" it's up to date.";
+    }
+    return newCommits+" new commit on "+_repo_name;
+  }
+
+  private RepositoryP2P pullRepo(String _repo_name){
     try {
       FutureGet futureGet = this.dht.get(Number160.createHash(_repo_name)).start();
       futureGet.awaitUninterruptibly();
-      if (futureGet.isSuccess()) {
-        RepositoryP2P incoming;
-        incoming = (RepositoryP2P) futureGet.dataMap().values().iterator().next().object();
-        NeoGit.addIncomingChanges(this.repos.get(_repo_name),incoming,this.user);
-      }
+      if (futureGet.isSuccess())
+        return (RepositoryP2P) futureGet.dataMap().values().iterator().next().object();
     }catch (Exception e) {
       e.printStackTrace();
     }
+
     return null;
   }
 
-  private static void addIncomingChanges(File local,RepositoryP2P incomingRepo ,String user){
+  private static int addIncomingChanges(File local,RepositoryP2P incomingRepo ,String user){
     RepositoryP2P localRepo = loadRepo(local);
     HashSet<RepostitoryFile> localFiles = localRepo.getFiles();
     HashSet<RepostitoryFile> incomingFiles = incomingRepo.getFiles();
@@ -232,12 +256,16 @@ public class NeoGit implements GitProtocol{
         .getCommitCount());
 
     Commit incomingCommit = incomingRepo.getCommits().pop();
-    while(!lastCommitPushed.equals(incomingCommit))
+    int count = 0;
+    while(!lastCommitPushed.equals(incomingCommit)){
       localRepo.addCommit(incomingCommit);
+      count++;
+    }
 
     localRepo.setCommitCount(0);
     saveRepo(local,localRepo);
 
+    return count;
   }
 
   private static RepositoryP2P loadRepo(File repoFile){
@@ -274,6 +302,39 @@ public class NeoGit implements GitProtocol{
     return false;
 
   }
+  private static boolean saveRepos(File reposFile, HashMap<String,File> repos){
 
+    try{
+      FileOutputStream fout = new FileOutputStream(reposFile);
+      ObjectOutputStream oos = new ObjectOutputStream(fout);
+      oos.writeObject(repos);
+      oos.close();
+      return true;
+
+    }catch (Exception e){
+      e.printStackTrace();
+    }
+
+    return false;
+
+  }
+
+  private static HashMap<String,File> loadRepos(File reposFile){
+
+    HashMap<String,File> result = null;
+
+    try{
+      FileInputStream fin = new FileInputStream(reposFile);
+      ObjectInputStream ois = new ObjectInputStream(fin);
+      result = (HashMap<String,File>) ois.readObject();
+      ois.close();
+
+    }catch (Exception e){
+      e.printStackTrace();
+    }
+
+    return result;
+
+  }
 
 }

@@ -20,17 +20,14 @@ public class NeoGitRunner {
     final CmdLineParser parser = new CmdLineParser( new NeoGitRunner());
     try {
       parser.parseArgument(args);
-      NeoGit neoGit = new NeoGit(id,master);
 
       dir = (dir == null) ? System.getProperty("user.dir") : dir;
       System.out.println("Working Directory = " + dir);
 
+      NeoGit neoGit = new NeoGit(id,master,dir);
+
       neoGit.createRepository("maro",new File(dir));
       neoGit.createRepository("patatern",new File(dir));
-
-//      NeoGit neoGit2 = new NeoGit(0,"127.0.0.1");
-//      neoGit2.createRepository("maro",new File(System.getProperty("user.dir")+"/neogit2"));
-//      neoGit2.createRepository("patatern",new File(System.getProperty("user.dir")+"/neogit2"));
 
       ArrayList<File> files = new ArrayList<>();
       files.add(new File("aa.txt"));
