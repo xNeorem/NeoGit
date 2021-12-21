@@ -122,11 +122,14 @@ public class NeoGit implements GitProtocol{
   @Override
   public boolean addFilesToRepository(String _repo_name, List<File> files) {
     if(_repo_name == null || files == null) return false;
+    if(files.size() == 0) return false;
     if(!this.repos.containsKey(_repo_name)) return false;
 
     if(!this.cashedRepo.getName().equals(_repo_name)){
       this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
     }
+
+    files.removeIf(file -> file.exists() && !file.isDirectory());
 
     this.cashedRepo.addFile(RepostitoryFile.fromList(files,this.user));
     NeoGit.saveRepo(this.repos.get(_repo_name),this.cashedRepo);
@@ -267,6 +270,10 @@ public class NeoGit implements GitProtocol{
     this.cashedRepo = localRepo;
 
     return count;
+  }
+
+  public void leaveNetwork() {
+    dht.peer().announceShutdown().start().awaitUninterruptibly();
   }
 
   private static RepositoryP2P loadRepo(File repoFile){
