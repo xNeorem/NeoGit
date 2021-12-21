@@ -1,9 +1,7 @@
 package it.unisa.neogit.entity;
 
-import java.io.File;
 import java.io.Serializable;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Stack;
 
 public class Repository implements Serializable {
@@ -12,7 +10,7 @@ public class Repository implements Serializable {
   private final Stack<Commit> commits;
   private final HashSet<RepostitoryFile> files;
   private final HashSet<RepostitoryFile> stagedFiles;
-  private boolean canCommit;
+  private boolean canPush;
   private String userName;
 
   public Repository(String name, String userName) {
@@ -21,7 +19,7 @@ public class Repository implements Serializable {
     this.commits = new Stack<>();
     this.files = new HashSet<>();
     this.stagedFiles = new HashSet<>();
-    this.canCommit = false;
+    this.canPush = false;
   }
 
   public String getName() {
@@ -44,12 +42,12 @@ public class Repository implements Serializable {
     this.userName = userName;
   }
 
-  public boolean isCanCommit() {
-    return canCommit;
+  public boolean isCanPush() {
+    return canPush;
   }
 
-  public void setCanCommit(boolean canCommit) {
-    this.canCommit = canCommit;
+  public void setCanPush(boolean canPush) {
+    this.canPush = canPush;
   }
 
   public HashSet<RepostitoryFile> getFiles() {
@@ -85,7 +83,7 @@ public class Repository implements Serializable {
 
     Repository that = (Repository) o;
 
-    if (canCommit != that.canCommit) {
+    if (canPush != that.canPush) {
       return false;
     }
     if (!name.equals(that.name)) {
@@ -105,7 +103,7 @@ public class Repository implements Serializable {
     int result = name.hashCode();
     result = 31 * result + commits.hashCode();
     result = 31 * result + files.hashCode();
-    result = 31 * result + (canCommit ? 1 : 0);
+    result = 31 * result + (canPush ? 1 : 0);
     result = 31 * result + userName.hashCode();
     return result;
   }
@@ -116,7 +114,7 @@ public class Repository implements Serializable {
         "name='" + name + '\'' +
         ", commits=" + commits +
         ", files=" + files +
-        ", canCommit=" + canCommit +
+        ", canCommit=" + canPush +
         ", userName='" + userName + '\'' +
         '}';
   }

@@ -154,7 +154,7 @@ public class NeoGit implements GitProtocol{
     }
 
     this.cashedRepo.commit(_message);
-    this.cashedRepo.setCanCommit(true);
+    this.cashedRepo.setCanPush(true);
     NeoGit.saveRepo(this.repos.get(_repo_name),this.cashedRepo);
 
     return true;
@@ -174,14 +174,14 @@ public class NeoGit implements GitProtocol{
 
     this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
 
-    if(!this.cashedRepo.isCanCommit()) return "Nothing to commit.";
+    if(!this.cashedRepo.isCanPush()) return "Nothing to commit.";
     if(this.cashedRepo.isHasIncomingChanges()) return _repo_name+" in not up to date\nPull new changes.";
     else{
       if(!this.cashedRepo.isUpToDate(this.pullRepo(_repo_name)))
         return _repo_name+" is not up to date\nPull new changes.";
     }
 
-    this.cashedRepo.setCanCommit(false);
+    this.cashedRepo.setCanPush(false);
     int commitCount = this.cashedRepo.getCommitCount();
     this.cashedRepo.setCommitCount(0);
 
@@ -197,7 +197,7 @@ public class NeoGit implements GitProtocol{
       }
 
     }catch (Exception e){
-      this.cashedRepo.setCanCommit(true);
+      this.cashedRepo.setCanPush(true);
       this.cashedRepo.setCommitCount(commitCount);
       e.printStackTrace();
       return "Error during pushing "+_repo_name+".";
