@@ -29,8 +29,8 @@ public class NeoGitRunner {
       dir = (dir == null) ? System.getProperty("user.dir") : dir;
 
       NeoGit neoGit = new NeoGit(id,master,dir);
-      String name = "";
-      String message = "";
+      String name;
+      String message;
 
       terminal.printf("\nStaring peer id: %d on master node: %s using as working dir: %s\n",
           id, master,dir);

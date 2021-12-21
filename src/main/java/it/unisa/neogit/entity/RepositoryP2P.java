@@ -41,6 +41,8 @@ public class RepositoryP2P extends Repository implements Serializable {
     this.contributors.add(peerAddress);
   }
 
+  public void removePeerAndress(PeerAddress peerAddress){ this.contributors.remove(peerAddress);}
+
   public boolean isHasIncomingChanges() {
     return hasIncomingChanges;
   }

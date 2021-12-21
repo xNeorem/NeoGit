@@ -79,7 +79,7 @@ public class NeoGit implements GitProtocol{
     if(_repo_name == null || _directory == null) return false;
     try{
 
-      String directory = _directory+"/"+_repo_name+"/data.ng";
+      String directory = _directory+"/"+_repo_name;
 
       File file = new File(directory);
       if(!file.getParentFile().mkdirs()){
@@ -89,15 +89,13 @@ public class NeoGit implements GitProtocol{
       FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
       futureGet.awaitUninterruptibly();
       if (futureGet.isSuccess()){
-         if(futureGet.isEmpty()){
-           this.cashedRepo = new RepositoryP2P(_repo_name,this.user);
-           this.cashedRepo.addPeerAndress(peer.peerAddress());
-         }
-         else{
-           this.cashedRepo = (RepositoryP2P) futureGet.dataMap().values().iterator().next().object();
-           this.cashedRepo.addPeerAndress(this.peer.peerAddress());
-         }
 
+         if(futureGet.isEmpty())
+           this.cashedRepo = new RepositoryP2P(_repo_name,this.user);
+         else
+           this.cashedRepo = (RepositoryP2P) futureGet.dataMap().values().iterator().next().object();
+
+        this.cashedRepo.addPeerAndress(this.peer.peerAddress());
         this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
         NeoGit.saveRepo(file,this.cashedRepo);
       }
@@ -129,7 +127,11 @@ public class NeoGit implements GitProtocol{
       this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
     }
 
-    files.removeIf(file -> file.exists() && !file.isDirectory());
+    files.removeIf(
+        file -> file.exists() &&
+                !file.isDirectory() &&
+                file.getAbsolutePath().contains(this.repos.get(_repo_name).getPath())
+    );
 
     this.cashedRepo.addFile(RepostitoryFile.fromList(files,this.user));
     NeoGit.saveRepo(this.repos.get(_repo_name),this.cashedRepo);
@@ -190,12 +192,15 @@ public class NeoGit implements GitProtocol{
     try {
       FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
       futureGet.awaitUninterruptibly();
-      if (futureGet.isSuccess())
-        this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
+      if (futureGet.isSuccess()) {
+        this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start()
+            .awaitUninterruptibly();
 
-      for (PeerAddress peer : this.cashedRepo.getContributors()){
-          FutureDirect futureDirect = this.dht.peer().sendDirect(peer).object(this.cashedRepo.getName()).start();
+        for (PeerAddress peer : this.cashedRepo.getContributors()) {
+          FutureDirect futureDirect = this.dht.peer().sendDirect(peer)
+              .object(this.cashedRepo.getName()).start();
           futureDirect.awaitUninterruptibly();
+        }
       }
 
     }catch (Exception e){
@@ -274,8 +279,30 @@ public class NeoGit implements GitProtocol{
     return count;
   }
 
-  public void leaveNetwork() {
+  public boolean leaveNetwork() {
+    for(String repo: this.repos.keySet())
+      leaveRepo(repo);
+
     dht.peer().announceShutdown().start().awaitUninterruptibly();
+    return true;
+  }
+
+  private void leaveRepo(String _repo_name){
+    try {
+      RepositoryP2P repo = pullRepo(_repo_name);
+      if(repo == null) return;
+
+      repo.removePeerAndress(this.peer.peerAddress());
+      FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
+      futureGet.awaitUninterruptibly();
+      if (futureGet.isSuccess()) {
+        this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start()
+            .awaitUninterruptibly();
+      }
+
+    }catch (Exception e){
+      e.printStackTrace();
+    }
   }
 
   private static RepositoryP2P loadRepo(File repoFile){
@@ -283,7 +310,7 @@ public class NeoGit implements GitProtocol{
     RepositoryP2P result = null;
 
     try{
-      FileInputStream fin = new FileInputStream(repoFile);
+      FileInputStream fin = new FileInputStream(repoFile+"/data.ng");
       ObjectInputStream ois = new ObjectInputStream(fin);
       result = (RepositoryP2P) ois.readObject();
       ois.close();
@@ -299,7 +326,7 @@ public class NeoGit implements GitProtocol{
   private static boolean saveRepo(File repoFile,Repository repo){
 
     try{
-      FileOutputStream fout = new FileOutputStream(repoFile);
+      FileOutputStream fout = new FileOutputStream(repoFile+"/data.ng");
       ObjectOutputStream oos = new ObjectOutputStream(fout);
       oos.writeObject(repo);
       oos.close();
