@@ -153,6 +153,8 @@ public class NeoGit implements GitProtocol{
       this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
     }
 
+    if(this.cashedRepo.getStagedFiles().size() == 0) return false;
+
     this.cashedRepo.commit(_message);
     this.cashedRepo.setCanPush(true);
     NeoGit.saveRepo(this.repos.get(_repo_name),this.cashedRepo);
