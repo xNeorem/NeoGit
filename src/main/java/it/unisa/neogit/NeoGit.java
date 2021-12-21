@@ -60,8 +60,11 @@ public class NeoGit implements GitProtocol{
     });
 
     File reposFile = new File(this.reposPath);
-    if(reposFile.exists() && !reposFile.isDirectory())
+    if(reposFile.exists() && !reposFile.isDirectory()){
       this.repos = NeoGit.loadRepos(reposFile);
+      for(String repo : this.repos.keySet())
+        joinRepo(repo);
+    }
     else
       NeoGit.saveRepos(reposFile,this.repos);
 
@@ -80,9 +83,9 @@ public class NeoGit implements GitProtocol{
     try{
 
       String directory = _directory+"/"+_repo_name;
+      File directoryFile = new File(directory);
 
-      File file = new File(directory);
-      if(!file.getParentFile().mkdirs()){
+      if(!(new File(directory+"/data.ng").getParentFile().mkdirs())){
         return false;
       }
 
@@ -97,11 +100,11 @@ public class NeoGit implements GitProtocol{
 
         this.cashedRepo.addPeerAndress(this.peer.peerAddress());
         this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
-        NeoGit.saveRepo(file,this.cashedRepo);
+        NeoGit.saveRepo(directoryFile,this.cashedRepo);
       }
 
 
-      this.repos.put(_repo_name,file);
+      this.repos.put(_repo_name,directoryFile);
       NeoGit.saveRepos(new File(this.reposPath),this.repos);
 
     }catch (Exception e){
@@ -123,15 +126,17 @@ public class NeoGit implements GitProtocol{
     if(files.size() == 0) return false;
     if(!this.repos.containsKey(_repo_name)) return false;
 
-    if(!this.cashedRepo.getName().equals(_repo_name)){
+    if(this.cashedRepo == null || !this.cashedRepo.getName().equals(_repo_name)){
       this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
     }
 
     files.removeIf(
-        file -> file.exists() &&
-                !file.isDirectory() &&
-                file.getAbsolutePath().contains(this.repos.get(_repo_name).getPath())
+        file -> !file.exists() ||
+                file.isDirectory() ||
+                !file.getPath().contains(this.repos.get(_repo_name).getPath())
     );
+
+    if(files.size() == 0) return false;
 
     this.cashedRepo.addFile(RepostitoryFile.fromList(files,this.user));
     NeoGit.saveRepo(this.repos.get(_repo_name),this.cashedRepo);
@@ -197,9 +202,11 @@ public class NeoGit implements GitProtocol{
             .awaitUninterruptibly();
 
         for (PeerAddress peer : this.cashedRepo.getContributors()) {
-          FutureDirect futureDirect = this.dht.peer().sendDirect(peer)
-              .object(this.cashedRepo.getName()).start();
-          futureDirect.awaitUninterruptibly();
+          if(!peer.equals(this.peer.peerAddress())) {
+            FutureDirect futureDirect = this.dht.peer().sendDirect(peer)
+                .object(this.cashedRepo.getName()).start();
+            futureDirect.awaitUninterruptibly();
+          }
         }
       }
 
@@ -210,7 +217,7 @@ public class NeoGit implements GitProtocol{
       return "Error during pushing "+_repo_name+".";
     }
 
-    return commitCount+"commit pushed on "+_repo_name;
+    return commitCount+" commit pushed on "+_repo_name;
   }
 
   /**
@@ -241,6 +248,8 @@ public class NeoGit implements GitProtocol{
     try {
       FutureGet futureGet = this.dht.get(Number160.createHash(_repo_name)).start();
       futureGet.awaitUninterruptibly();
+      if(futureGet.isEmpty())
+        return null;
       if (futureGet.isSuccess())
         return (RepositoryP2P) futureGet.dataMap().values().iterator().next().object();
     }catch (Exception e) {
@@ -279,12 +288,29 @@ public class NeoGit implements GitProtocol{
     return count;
   }
 
-  public boolean leaveNetwork() {
+  public void leaveNetwork() {
     for(String repo: this.repos.keySet())
       leaveRepo(repo);
 
     dht.peer().announceShutdown().start().awaitUninterruptibly();
-    return true;
+  }
+
+  private void joinRepo(String _repo_name){
+    try {
+      RepositoryP2P repo = pullRepo(_repo_name);
+      if(repo == null) return;
+
+      repo.addPeerAndress(this.peer.peerAddress());
+      FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
+      futureGet.awaitUninterruptibly();
+      if (futureGet.isSuccess()) {
+        this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start()
+            .awaitUninterruptibly();
+      }
+
+    }catch (Exception e){
+      e.printStackTrace();
+    }
   }
 
   private void leaveRepo(String _repo_name){

@@ -52,6 +52,8 @@ public class RepositoryP2P extends Repository implements Serializable {
   }
 
   public boolean isUpToDate(RepositoryP2P that){
+    if(that == null)
+      return true;
 
     if(that.getCommits().size() == 0)
       return true;

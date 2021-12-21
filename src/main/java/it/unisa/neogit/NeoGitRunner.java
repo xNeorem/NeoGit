@@ -2,6 +2,8 @@ package it.unisa.neogit;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import org.beryx.textio.TextIO;
 import org.beryx.textio.TextIoFactory;
 import org.beryx.textio.TextTerminal;
@@ -56,25 +58,26 @@ public class NeoGitRunner {
           case 2:
             terminal.printf("\nENTER REPOSITORY NAME\n");
             name = textIO.newStringInputReader()
-                .withDefaultValue("default-topic")
+                .withDefaultValue("default-repo")
                 .read("Name:");
-//            if(neoGit.addFilesToRepository())
-//              terminal.printf("\n SUCCESSFULLY SUBSCRIBED TO %s\n",sname);
-//            else
-//              terminal.printf("\nERROR IN TOPIC SUBSCRIPTION\n");
+            List<File> files = addFiles(terminal,textIO,dir,name);
+            if(neoGit.addFilesToRepository(name,files))
+              terminal.printf("\nFILES ADDED TO %s\n",name);
+            else
+              terminal.printf("\nERROR WHILE ADDING FILE TO %s\n",name);
             break;
 
           case 3:
             terminal.printf("\nENTER REPOSITORY NAME\n");
             name = textIO.newStringInputReader()
-                .withDefaultValue("default-topic")
+                .withDefaultValue("default-repo")
                 .read("Name:");
             terminal.printf("\nENTER COMMIT MESSAGE\n");
             message = textIO.newStringInputReader()
                 .withDefaultValue("default-commit")
                 .read("commit:");
             if(neoGit.commit(name,message))
-              terminal.printf("\n SUCCESSFULLY COMMIT CHANGES TO %s\n",name);
+              terminal.printf("\nSUCCESSFULLY COMMIT CHANGES TO %s\n",name);
             else
               terminal.printf("\nERROR WHILE COMMITTING TO %s\n",name);
             break;
@@ -82,14 +85,14 @@ public class NeoGitRunner {
           case 4:
             terminal.printf("\nENTER REPOSITORY NAME\n");
             name = textIO.newStringInputReader()
-                .withDefaultValue("default-topic")
+                .withDefaultValue("default-repo")
                 .read("Name:");
             terminal.printf(neoGit.push(name));
             break;
           case 5:
             terminal.printf("\nENTER REPOSITORY NAME\n");
             name = textIO.newStringInputReader()
-                .withDefaultValue("default-topic")
+                .withDefaultValue("default-repo")
                 .read("Name:");
             terminal.printf(neoGit.pull(name));
             break;
@@ -132,13 +135,47 @@ public class NeoGitRunner {
     }
   }
 
-  public static void printMenu(TextTerminal terminal) {
+  private static void printMenu(TextTerminal terminal) {
     terminal.printf("\n1 - CREATE REPOSITORY\n");
     terminal.printf("\n2 - ADD FILES\n");
     terminal.printf("\n3 - COMMIT\n");
     terminal.printf("\n4 - PUSH\n");
     terminal.printf("\n5 - PULL\n");
     terminal.printf("\n6 - EXIT\n");
+
+  }
+
+  private static List<File> addFiles(TextTerminal terminal, TextIO textIO,String dir,String repo_name ){
+
+    HashSet<File> result = new HashSet<>();
+    String path;
+    while(true) {
+      terminal.printf("\n1 - ADD NEW FILE\n");
+      terminal.printf("\n2 - BACK\n");
+
+      int option = textIO.newIntInputReader()
+          .withMaxVal(2)
+          .withMinVal(1)
+          .read("Option");
+      switch (option) {
+        case 1:
+          terminal.printf("\nENTER FILE PATH\n");
+          terminal.printf("\nWORKING PATH : %s/%s/\n",dir,repo_name);
+          terminal.printf("\nFOR EXAMPLE TO ADD %s/%s/example.txt\nJUST WHRITE example.txt\n",dir,repo_name);
+          path = textIO.newStringInputReader()
+              .read("path:");
+          path = dir+"/"+repo_name+"/"+path;
+          result.add(new File(path));
+          terminal.printf("\n%s ADDED\n",path);
+          break;
+        case 2:
+          return new ArrayList<>(result);
+        default:
+          break;
+      }
+    }
+
+
 
   }
 }
