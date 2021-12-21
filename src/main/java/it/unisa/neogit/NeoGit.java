@@ -179,7 +179,7 @@ public class NeoGit implements GitProtocol{
   @Override
   public String push(String _repo_name) {
     if(_repo_name == null) return "Repository name can not be null.";
-    if(!this.repos.containsKey(_repo_name)) return "Can not push unknow repo\nCreate repository first.";
+    if(!this.repos.containsKey(_repo_name)) return "Can not push unknown repo\nCreate repository first.";
 
     this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
 
@@ -217,6 +217,8 @@ public class NeoGit implements GitProtocol{
       return "Error during pushing "+_repo_name+".";
     }
 
+    NeoGit.saveRepo(this.repos.get(_repo_name),this.cashedRepo);
+
     return commitCount+" commit pushed on "+_repo_name;
   }
 
@@ -231,16 +233,18 @@ public class NeoGit implements GitProtocol{
   public String pull(String _repo_name) {
 
     if(_repo_name == null) return "Repository name can not be null.";
-    if(!this.repos.containsKey(_repo_name)) return "Can not push unknow repo\nCreate repository first.";
+    if(!this.repos.containsKey(_repo_name)) return "Can not pull unknown repo\nCreate repository first.";
 
 
     RepositoryP2P incoming = this.pullRepo(_repo_name);
-    if(incoming == null) return "error while pulling "+_repo_name;
+    if(incoming == null) return "error while pulling, try push again "+_repo_name;
 
-    int newCommits = this.addIncomingChanges(this.repos.get(_repo_name),incoming,this.user);
-    if(newCommits == 0){
+    if(this.cashedRepo.isUpToDate(incoming)){
       return _repo_name+" it's up to date.";
     }
+
+    int newCommits = this.addIncomingChanges(this.repos.get(_repo_name),incoming,this.user);
+
     return newCommits+" new commit on "+_repo_name;
   }
 
@@ -271,12 +275,13 @@ public class NeoGit implements GitProtocol{
       }
     }
 
+    int count = 0;
+
     Commit lastCommitPushed = localRepo.getCommits().get(localRepo.getCommits().size() - localRepo
         .getCommitCount());
 
     Commit incomingCommit = incomingRepo.getCommits().pop();
-    int count = 0;
-    while(!lastCommitPushed.equals(incomingCommit)){
+    while (!lastCommitPushed.equals(incomingCommit)) {
       localRepo.addCommit(incomingCommit);
       count++;
     }

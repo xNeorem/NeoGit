@@ -87,14 +87,14 @@ public class NeoGitRunner {
             name = textIO.newStringInputReader()
                 .withDefaultValue("default-repo")
                 .read("Name:");
-            terminal.printf(neoGit.push(name));
+            terminal.printf("\n"+neoGit.push(name)+"\n");
             break;
           case 5:
             terminal.printf("\nENTER REPOSITORY NAME\n");
             name = textIO.newStringInputReader()
                 .withDefaultValue("default-repo")
                 .read("Name:");
-            terminal.printf(neoGit.pull(name));
+            terminal.printf("\n"+neoGit.pull(name)+"\n");
             break;
           case 6:
             terminal.printf("\nARE YOU SURE TO LEAVE THE NETWORK?\n");
