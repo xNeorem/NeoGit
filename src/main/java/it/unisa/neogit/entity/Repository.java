@@ -14,7 +14,7 @@ public class Repository implements Serializable {
 
   private String name;
   private final Stack<Commit> commits;
-  private final HashMap<File,String> files;
+  protected final HashMap<File,String> files;
   private final HashSet<File> stagedFiles;
   private boolean canPush;
   private String creator;
@@ -72,6 +72,7 @@ public class Repository implements Serializable {
   public void addCommit(Commit commit){
     this.commits.add(commit);
   }
+
   public void addCommit(Commit commit, int index) {
     this.commits.add(index,commit);
   }

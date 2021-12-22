@@ -305,33 +305,29 @@ public class NeoGit implements GitProtocol{
     RepositoryP2P localRepo = loadRepo(repoFile);
     HashMap<File,String> localFiles = localRepo.getFiles();
     HashMap<File,String> incomingFiles = remoteRepo.getFiles();
-    ArrayList<File> filesToAdd = new ArrayList<>();
+    HashMap<File,String> filesToAdd = new HashMap<>();
     String dir = repoFile.getPath();
 
     for(File file : incomingFiles.keySet()){
       if(localFiles.containsKey(file)){
         if(!localFiles.get(file).equals(incomingFiles.get(file))){
+          System.out.println("FOUND CONFLIT: "+file.getPath()+" needs a manual fix.");
           int lastDot = file.getPath().lastIndexOf(".");
           String ext = (lastDot != -1) ? file.getPath().substring(lastDot) : "";
           String path = (lastDot != -1) ? file.getPath().substring(0,lastDot) : file.getPath();
 
           File remoteFile = new File(dir+"/"+path+"_remote"+ext);
           NeoGit.writeFile(remoteFile.getPath(),incomingFiles.get(file));
-          filesToAdd.add(remoteFile);
-
-          File localFile = new File(dir+"/"+path+"_local"+ext);
-          new File(dir+"/"+file.getPath()).renameTo(localFile);
 
         }
 
       }else{
         NeoGit.writeFile(dir+"/"+file.getPath(),incomingFiles.get(file));
-        filesToAdd.add(file);
+        filesToAdd.put(file,incomingFiles.get(file));
       }
     }
 
-
-    this.addFilesToRepository(_repo_name,filesToAdd);
+    localRepo.addFileFromRemote(filesToAdd);
 
     int count = 0;
     Stack<Commit> remoteCommits = remoteRepo.getCommits();
@@ -399,7 +395,10 @@ public class NeoGit implements GitProtocol{
 
   private static void writeFile(String path, String data) throws IOException {
 
-    FileWriter myWriter = new FileWriter(path);
+    File file = new File(path);
+    file.getParentFile().mkdirs();
+
+    FileWriter myWriter = new FileWriter(file);
     myWriter.write(data);
     myWriter.close();
 

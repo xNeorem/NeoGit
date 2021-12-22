@@ -1,7 +1,9 @@
 package it.unisa.neogit.entity;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Stack;
 import net.tomp2p.peers.PeerAddress;
@@ -51,6 +53,10 @@ public class RepositoryP2P extends Repository implements Serializable {
 
   public void setHasIncomingChanges(boolean hasIncomingChanges) {
     this.hasIncomingChanges = hasIncomingChanges;
+  }
+
+  public void addFileFromRemote(HashMap<File,String> files){
+    this.files.putAll(files);
   }
 
   public boolean isUpToDate(RepositoryP2P that){
