@@ -3,8 +3,8 @@ package it.unisa.neogit.entity;
 import java.io.File;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
 
@@ -16,10 +16,9 @@ public class Commit implements Serializable {
   private String message;
   private String date;
   private String user;
-  private HashSet<RepostitoryFile> files;
+  private HashMap<File, String> files;
 
-
-  public Commit(String message, String user, HashSet<RepostitoryFile> files) {
+  public Commit(String message, String user, HashMap<File,String > files) {
     this.message = message;
     this.user = user;
     this.uid = UUID.randomUUID().toString();
@@ -55,18 +54,7 @@ public class Commit implements Serializable {
     this.user = user;
   }
 
-  public HashSet<RepostitoryFile> getFiles(){ return (HashSet<RepostitoryFile>) this.files.clone();}
-
-//  public static ArrayList<File> hasConflict(Commit thisCommit, Commit thatCommit){
-//
-//    ArrayList<File> result = new ArrayList<>();
-//
-//    for(File file : thisCommit.getFiles())
-//      if(thatCommit.getFiles().contains(file))
-//        result.add(file);
-//
-//    return result;
-//  }
+  public HashMap<File,String> getFiles(){ return (HashMap<File, String>) this.files.clone();}
 
   @Override
   public boolean equals(Object o) {

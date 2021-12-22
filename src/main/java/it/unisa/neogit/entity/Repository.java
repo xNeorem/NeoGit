@@ -1,6 +1,12 @@
 package it.unisa.neogit.entity;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Stack;
 
@@ -8,8 +14,8 @@ public class Repository implements Serializable {
 
   private String name;
   private final Stack<Commit> commits;
-  private final HashSet<RepostitoryFile> files;
-  private final HashSet<RepostitoryFile> stagedFiles;
+  private final HashMap<File,String> files;
+  private final HashSet<File> stagedFiles;
   private boolean canPush;
   private String creator;
 
@@ -17,7 +23,7 @@ public class Repository implements Serializable {
     this.name = name;
     this.creator = userName;
     this.commits = new Stack<>();
-    this.files = new HashSet<>();
+    this.files = new HashMap<>();
     this.stagedFiles = new HashSet<>();
     this.canPush = false;
   }
@@ -50,17 +56,17 @@ public class Repository implements Serializable {
     this.canPush = canPush;
   }
 
-  public HashSet<RepostitoryFile> getFiles() {
-    return (HashSet<RepostitoryFile>) this.files.clone();
+  public HashMap<File,String> getFiles() {
+    return (HashMap<File, String>) this.files.clone();
   }
 
-  public HashSet<RepostitoryFile> getStagedFiles() {
-    return (HashSet<RepostitoryFile>) this.stagedFiles.clone();
+  public HashSet<File> getStagedFiles() {
+    return (HashSet<File>) this.stagedFiles.clone();
   }
 
-  public void addFile(HashSet<RepostitoryFile> files){
-    this.stagedFiles.addAll(files);
-    this.files.addAll(files);
+  public void addFile(HashMap<File,String> files){
+    this.stagedFiles.addAll(files.keySet());
+    this.files.putAll(files);
   }
 
   public void addCommit(Commit commit){
@@ -71,7 +77,11 @@ public class Repository implements Serializable {
   }
 
   public void commit(String message,String userName){
-    this.commits.add(new Commit(message,userName,(HashSet<RepostitoryFile>) this.stagedFiles.clone()));
+    HashMap<File,String> files = new HashMap<>(this.stagedFiles.size());
+    for(File file : this.stagedFiles)
+      files.put(file,this.files.get(file));
+
+    this.commits.add(new Commit(message,userName,files));
     this.stagedFiles.clear();
   }
 

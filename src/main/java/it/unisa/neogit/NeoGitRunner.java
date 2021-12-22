@@ -150,6 +150,9 @@ public class NeoGitRunner {
     HashSet<File> result = new HashSet<>();
     String path;
     while(true) {
+      for (File file : result)
+        terminal.printf(" - %s ADDED \n",file.getPath());
+
       terminal.printf("\n1 - ADD NEW FILE\n");
       terminal.printf("\n2 - BACK\n");
 
@@ -164,9 +167,8 @@ public class NeoGitRunner {
           terminal.printf("\nFOR EXAMPLE TO ADD %s/%s/example.txt\nJUST WHRITE example.txt\n",dir,repo_name);
           path = textIO.newStringInputReader()
               .read("path:");
-          path = dir+"/"+repo_name+"/"+path;
+//          path = dir+"/"+repo_name+"/"+path;
           result.add(new File(path));
-          terminal.printf("\n%s ADDED\n",path);
           break;
         case 2:
           return new ArrayList<>(result);

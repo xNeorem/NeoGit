@@ -1,5 +1,6 @@
 package it.unisa.neogit.entity;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Stack;
@@ -21,7 +22,7 @@ public class RepositoryP2P extends Repository implements Serializable {
   }
 
   @Override
-  public void commit(String message,String userName) {
+  public void commit(String message,String userName){
     super.commit(message,userName);
     this.commitCount += 1;
   }

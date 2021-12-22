@@ -7,9 +7,15 @@ import it.unisa.neogit.entity.RepostitoryFile;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -96,9 +102,15 @@ public class NeoGit implements GitProtocol{
 
          if(futureGet.isEmpty())
            this.cashedRepo = new RepositoryP2P(_repo_name,this.user);
-         else
-           this.cashedRepo = (RepositoryP2P) futureGet.dataMap().values().iterator().next().object();
 
+         else {
+           this.cashedRepo = (RepositoryP2P) futureGet.dataMap().values().iterator().next()
+               .object();
+           HashMap<File,String> files = this.cashedRepo.getFiles();
+           for(File file : files.keySet())
+             NeoGit.writeFile(directory+"/"+file.getPath(),files.get(file));
+
+         }
         this.cashedRepo.addPeerAndress(this.peer.peerAddress());
         this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
         NeoGit.saveRepo(directoryFile,this.cashedRepo);
@@ -131,15 +143,26 @@ public class NeoGit implements GitProtocol{
       this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
     }
 
-    files.removeIf(
-        file -> !file.exists() ||
-                file.isDirectory() ||
-                !file.getPath().contains(this.repos.get(_repo_name).getPath())
-    );
+    String dir = this.repos.get(_repo_name).getPath();
+    HashMap<File,String> filesToAdd = new HashMap<>();
 
-    if(files.size() == 0) return false;
+    try{
+      for (File file : files) {
+        File checkFile = new File(dir + "/" + file.getPath());
+        if (checkFile.exists() && !checkFile.isDirectory()) {
+          filesToAdd.put(file,
+              new String(Files.readAllBytes(Paths.get(checkFile.getPath())), StandardCharsets.UTF_8));
+        }
+      }
+    }catch (Exception e){
+      e.printStackTrace();
+      return false;
+    }
 
-    this.cashedRepo.addFile(RepostitoryFile.fromList(files,this.user));
+    if(filesToAdd.size() == 0) return false;
+
+
+    this.cashedRepo.addFile(filesToAdd);
     NeoGit.saveRepo(this.repos.get(_repo_name),this.cashedRepo);
 
     return true;
@@ -251,7 +274,13 @@ public class NeoGit implements GitProtocol{
       return _repo_name+" it's up to date.";
     }
 
-    int newCommits = this.addIncomingChanges(this.repos.get(_repo_name),incoming,this.user);
+    int newCommits;
+    try {
+      newCommits = this.addIncomingChanges(_repo_name,incoming);
+    } catch (IOException e) {
+      e.printStackTrace();
+      return "error while adding new changes from "+_repo_name;
+    }
 
     return newCommits+" new commit on "+_repo_name;
   }
@@ -271,17 +300,38 @@ public class NeoGit implements GitProtocol{
     return null;
   }
 
-  private int addIncomingChanges(File local,RepositoryP2P remoteRepo ,String user){
-    RepositoryP2P localRepo = loadRepo(local);
-    HashSet<RepostitoryFile> localFiles = localRepo.getFiles();
-    HashSet<RepostitoryFile> incomingFiles = remoteRepo.getFiles();
+  private int addIncomingChanges(String _repo_name,RepositoryP2P remoteRepo) throws IOException {
+    File repoFile = this.repos.get(_repo_name);
+    RepositoryP2P localRepo = loadRepo(repoFile);
+    HashMap<File,String> localFiles = localRepo.getFiles();
+    HashMap<File,String> incomingFiles = remoteRepo.getFiles();
+    ArrayList<File> filesToAdd = new ArrayList<>();
+    String dir = repoFile.getPath();
 
-    for(RepostitoryFile file : incomingFiles){
-      if(!localFiles.contains(file) && file.getFile().exists()){
-        //TODO: duplicate file
-        System.out.println(file.getFile().getName()+"need to be duplicate");
+    for(File file : incomingFiles.keySet()){
+      if(localFiles.containsKey(file)){
+        if(!localFiles.get(file).equals(incomingFiles.get(file))){
+          int lastDot = file.getPath().lastIndexOf("/");
+          String path = file.getPath().substring(lastDot);
+          String ext = file.getPath().substring(0,lastDot);
+
+          File remoteFile = new File(dir+"/"+path+"_remote."+ext);
+          NeoGit.writeFile(remoteFile.getPath(),incomingFiles.get(file));
+          filesToAdd.add(remoteFile);
+
+          File localFile = new File(dir+"/"+path+"_local."+ext);
+          new File(dir+"/"+file.getPath()).renameTo(localFile);
+
+        }
+
+      }else{
+        NeoGit.writeFile(dir+"/"+file.getPath(),incomingFiles.get(file));
+        filesToAdd.add(file);
       }
     }
+
+
+    this.addFilesToRepository(_repo_name,filesToAdd);
 
     int count = 0;
     Stack<Commit> remoteCommits = remoteRepo.getCommits();
@@ -298,7 +348,7 @@ public class NeoGit implements GitProtocol{
     }
     localRepo.setHasIncomingChanges(false);
 
-    saveRepo(local,localRepo);
+    saveRepo(repoFile,localRepo);
     this.cashedRepo = localRepo;
 
     return count;
@@ -345,6 +395,14 @@ public class NeoGit implements GitProtocol{
     }catch (Exception e){
       e.printStackTrace();
     }
+  }
+
+  private static void writeFile(String path, String data) throws IOException {
+
+    FileWriter myWriter = new FileWriter(path);
+    myWriter.write(data);
+    myWriter.close();
+
   }
 
   private static RepositoryP2P loadRepo(File repoFile){
