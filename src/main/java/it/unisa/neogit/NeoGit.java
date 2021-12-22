@@ -13,6 +13,7 @@ import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Stack;
 import net.tomp2p.dht.FutureGet;
 import net.tomp2p.dht.PeerBuilderDHT;
 import net.tomp2p.dht.PeerDHT;
@@ -162,7 +163,7 @@ public class NeoGit implements GitProtocol{
 
     if(this.cashedRepo.getStagedFiles().size() == 0) return false;
 
-    this.cashedRepo.commit(_message);
+    this.cashedRepo.commit(_message,this.user);
     this.cashedRepo.setCanPush(true);
     NeoGit.saveRepo(this.repos.get(_repo_name),this.cashedRepo);
 
@@ -239,6 +240,10 @@ public class NeoGit implements GitProtocol{
     RepositoryP2P incoming = this.pullRepo(_repo_name);
     if(incoming == null) return "error while pulling, try push again "+_repo_name;
 
+    if(this.cashedRepo == null || !this.cashedRepo.getName().equals(_repo_name)){
+      this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
+    }
+
     if(this.cashedRepo.isUpToDate(incoming)){
       return _repo_name+" it's up to date.";
     }
@@ -263,30 +268,31 @@ public class NeoGit implements GitProtocol{
     return null;
   }
 
-  private int addIncomingChanges(File local,RepositoryP2P incomingRepo ,String user){
+  private int addIncomingChanges(File local,RepositoryP2P remoteRepo ,String user){
     RepositoryP2P localRepo = loadRepo(local);
     HashSet<RepostitoryFile> localFiles = localRepo.getFiles();
-    HashSet<RepostitoryFile> incomingFiles = incomingRepo.getFiles();
+    HashSet<RepostitoryFile> incomingFiles = remoteRepo.getFiles();
 
     for(RepostitoryFile file : incomingFiles){
-      if(localFiles.contains(file) && !file.getLastContributor().equals(user)){
+      if(!localFiles.contains(file) && file.getFile().exists()){
         //TODO: duplicate file
-        System.out.println(file+"need to be duplicate");
+        System.out.println(file.getFile().getName()+"need to be duplicate");
       }
     }
 
     int count = 0;
+    Stack<Commit> remoteCommits = remoteRepo.getCommits();
+    int remoteCommitsSize = remoteCommits.size();
+    while(remoteCommitsSize != count){
+      Commit commit = remoteCommits.pop();
+      if(commit.getUser().equals(this.user))
+        break;
 
-    Commit lastCommitPushed = localRepo.getCommits().get(localRepo.getCommits().size() - localRepo
-        .getCommitCount());
-
-    Commit incomingCommit = incomingRepo.getCommits().pop();
-    while (!lastCommitPushed.equals(incomingCommit)) {
-      localRepo.addCommit(incomingCommit);
+      localRepo.addCommit(commit);
       count++;
     }
+    this.cashedRepo.setHasIncomingChanges(false);
 
-    localRepo.setCommitCount(0);
     saveRepo(local,localRepo);
     this.cashedRepo = localRepo;
 

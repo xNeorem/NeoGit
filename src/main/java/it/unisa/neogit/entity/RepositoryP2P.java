@@ -2,6 +2,7 @@ package it.unisa.neogit.entity;
 
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.Stack;
 import net.tomp2p.peers.PeerAddress;
 
 public class RepositoryP2P extends Repository implements Serializable {
@@ -20,8 +21,8 @@ public class RepositoryP2P extends Repository implements Serializable {
   }
 
   @Override
-  public void commit(String message) {
-    super.commit(message);
+  public void commit(String message,String userName) {
+    super.commit(message,userName);
     this.commitCount += 1;
   }
 
@@ -55,10 +56,20 @@ public class RepositoryP2P extends Repository implements Serializable {
     if(that == null)
       return true;
 
-    if(that.getCommits().size() == 0)
+    Stack<Commit> thatCommits = that.getCommits();
+    Stack<Commit> thisCommits = this.getCommits();
+
+    if(thatCommits.size() == 0) // local repo is up to date because remote repo haven't got any commit.
       return true;
 
-    return this.getCommits().pop().equals(that.getCommits().pop());
+    if(thisCommits.size() - this.commitCount == 0) // local repo is NOT up to date because remote repo have at least one commit.
+      return false;
+
+    //get first commit pushed and check if is equals to remote last commit.
+    for(int i = 0; i < this.commitCount; i++)
+      thisCommits.pop();
+
+    return thisCommits.pop().equals(that.getCommits().pop());
 
   }
 

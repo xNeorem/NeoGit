@@ -11,11 +11,11 @@ public class Repository implements Serializable {
   private final HashSet<RepostitoryFile> files;
   private final HashSet<RepostitoryFile> stagedFiles;
   private boolean canPush;
-  private String userName;
+  private String creator;
 
   public Repository(String name, String userName) {
     this.name = name;
-    this.userName = userName;
+    this.creator = userName;
     this.commits = new Stack<>();
     this.files = new HashSet<>();
     this.stagedFiles = new HashSet<>();
@@ -31,15 +31,15 @@ public class Repository implements Serializable {
   }
 
   public Stack<Commit> getCommits() {
-    return commits;
+    return (Stack<Commit>) this.commits.clone();
   }
 
-  public String getUserName() {
-    return userName;
+  public String getCreator() {
+    return creator;
   }
 
-  public void setUserName(String userName) {
-    this.userName = userName;
+  public void setCreator(String creator) {
+    this.creator = creator;
   }
 
   public boolean isCanPush() {
@@ -67,7 +67,7 @@ public class Repository implements Serializable {
     this.commits.add(commit);
   }
 
-  public void commit(String message){
+  public void commit(String message,String userName){
     this.commits.add(new Commit(message,userName,(HashSet<RepostitoryFile>) this.stagedFiles.clone()));
     this.stagedFiles.clear();
   }
@@ -95,7 +95,7 @@ public class Repository implements Serializable {
     if (!files.equals(that.files)) {
       return false;
     }
-    return userName.equals(that.userName);
+    return creator.equals(that.creator);
   }
 
   @Override
@@ -104,7 +104,7 @@ public class Repository implements Serializable {
     result = 31 * result + commits.hashCode();
     result = 31 * result + files.hashCode();
     result = 31 * result + (canPush ? 1 : 0);
-    result = 31 * result + userName.hashCode();
+    result = 31 * result + creator.hashCode();
     return result;
   }
 
@@ -115,7 +115,7 @@ public class Repository implements Serializable {
         ", commits=" + commits +
         ", files=" + files +
         ", canCommit=" + canPush +
-        ", userName='" + userName + '\'' +
+        ", userName='" + creator + '\'' +
         '}';
   }
 }

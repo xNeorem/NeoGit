@@ -9,7 +9,8 @@ ARG project=NeoGit
 ENV artifact=${project}-jar-with-dependencies.jar
 ENV MASTERIP=127.0.0.1
 ENV ID=0
-ENV WB=/home
+ENV WD=/home
 COPY --from=mvn /app/target/${artifact} .
+EXPOSE 5005
 
-CMD /usr/bin/java -jar ${artifact} -m $MASTERIP -id $ID -wd $WB
+CMD /usr/bin/java -jar ${artifact} -m $MASTERIP -id $ID -wd $WD
