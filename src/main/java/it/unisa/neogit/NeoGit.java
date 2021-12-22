@@ -311,7 +311,7 @@ public class NeoGit implements GitProtocol{
     for(File file : incomingFiles.keySet()){
       if(localFiles.containsKey(file)){
         if(!localFiles.get(file).equals(incomingFiles.get(file))){
-          int lastDot = file.getPath().lastIndexOf("/");
+          int lastDot = file.getPath().lastIndexOf(".");
           String path = file.getPath().substring(lastDot);
           String ext = file.getPath().substring(0,lastDot);
 
