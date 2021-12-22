@@ -182,7 +182,9 @@ public class NeoGit implements GitProtocol{
     if(_repo_name == null) return "Repository name can not be null.";
     if(!this.repos.containsKey(_repo_name)) return "Can not push unknown repo\nCreate repository first.";
 
-    this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
+    if(this.cashedRepo == null || !this.cashedRepo.getName().equals(_repo_name)){
+      this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
+    }
 
     if(!this.cashedRepo.isCanPush()) return "Nothing to commit.";
     if(this.cashedRepo.isHasIncomingChanges()) return _repo_name+" in not up to date\nPull new changes.";
@@ -284,15 +286,17 @@ public class NeoGit implements GitProtocol{
     int count = 0;
     Stack<Commit> remoteCommits = remoteRepo.getCommits();
     int remoteCommitsSize = remoteCommits.size();
+    int index = localRepo.getCommits().size() - localRepo.getCommitCount();
     while(remoteCommitsSize != count){
       Commit commit = remoteCommits.pop();
       if(commit.getUser().equals(this.user))
         break;
 
-      localRepo.addCommit(commit);
+      localRepo.addCommit(commit,index);
       count++;
+      index++;
     }
-    this.cashedRepo.setHasIncomingChanges(false);
+    localRepo.setHasIncomingChanges(false);
 
     saveRepo(local,localRepo);
     this.cashedRepo = localRepo;

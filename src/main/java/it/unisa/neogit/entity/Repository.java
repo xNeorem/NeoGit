@@ -66,6 +66,9 @@ public class Repository implements Serializable {
   public void addCommit(Commit commit){
     this.commits.add(commit);
   }
+  public void addCommit(Commit commit, int index) {
+    this.commits.add(index,commit);
+  }
 
   public void commit(String message,String userName){
     this.commits.add(new Commit(message,userName,(HashSet<RepostitoryFile>) this.stagedFiles.clone()));
