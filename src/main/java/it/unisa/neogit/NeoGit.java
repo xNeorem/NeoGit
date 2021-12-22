@@ -245,6 +245,7 @@ public class NeoGit implements GitProtocol{
     }
 
     if(this.cashedRepo.isUpToDate(incoming)){
+      this.cashedRepo.setHasIncomingChanges(false);
       return _repo_name+" it's up to date.";
     }
 
