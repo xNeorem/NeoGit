@@ -312,14 +312,14 @@ public class NeoGit implements GitProtocol{
       if(localFiles.containsKey(file)){
         if(!localFiles.get(file).equals(incomingFiles.get(file))){
           int lastDot = file.getPath().lastIndexOf(".");
-          String path = file.getPath().substring(lastDot);
-          String ext = file.getPath().substring(0,lastDot);
+          String ext = (lastDot != -1) ? file.getPath().substring(lastDot) : "";
+          String path = (lastDot != -1) ? file.getPath().substring(0,lastDot) : file.getPath();
 
-          File remoteFile = new File(dir+"/"+path+"_remote."+ext);
+          File remoteFile = new File(dir+"/"+path+"_remote"+ext);
           NeoGit.writeFile(remoteFile.getPath(),incomingFiles.get(file));
           filesToAdd.add(remoteFile);
 
-          File localFile = new File(dir+"/"+path+"_local."+ext);
+          File localFile = new File(dir+"/"+path+"_local"+ext);
           new File(dir+"/"+file.getPath()).renameTo(localFile);
 
         }
