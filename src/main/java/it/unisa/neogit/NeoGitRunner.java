@@ -141,27 +141,6 @@ public class NeoGitRunner {
             break;
         }
       }
-
-
-//      neoGit.createRepository("maro",new File(dir));
-//      neoGit.createRepository("patatern",new File(dir));
-//
-//      ArrayList<File> files = new ArrayList<>();
-//      files.add(new File("aa.txt"));
-//      files.add(new File("ab.txt"));
-//      files.add(new File("ba.txt"));
-//      neoGit.addFilesToRepository("maro",files);
-//      neoGit.commit("maro","marooonnn");
-//
-//      neoGit.addFilesToRepository("patatern",files);
-//      neoGit.commit("patatern","marooonnn");
-//
-//      neoGit.addFilesToRepository("maro",files);
-//
-//      System.out.println(neoGit.push("maro"));
-//      System.out.println(neoGit.pull("maro"));
-
-
     } catch (Exception e) {
       e.printStackTrace();
     }
