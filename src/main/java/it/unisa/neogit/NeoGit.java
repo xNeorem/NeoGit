@@ -100,6 +100,7 @@ public class NeoGit implements GitProtocol{
       if(!futureGet.isSuccess()) return false;
       if(!futureGet.isEmpty()) return false;
 
+      this.cashedRepo = new RepositoryP2P(_repo_name,this.user);
       this.cashedRepo.addPeerAndress(this.peer.peerAddress());
       this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
       NeoGit.saveRepo(directoryFile,this.cashedRepo);

@@ -66,9 +66,6 @@ class NeoGitTest {
   @Order(1)
   void createRepository() {
     assertTrue(master.createRepository(repoName,new File(testDirMaster)));
-    assertTrue(peer1.createRepository(repoName,new File(testDirPeer1)));
-    assertTrue(peer2.createRepository(repoName,new File(testDirPeer2)));
-    assertTrue(peer3.createRepository(repoName,new File(testDirPeer3)));
   }
 
   @Test
