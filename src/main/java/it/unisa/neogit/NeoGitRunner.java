@@ -41,7 +41,7 @@ public class NeoGitRunner {
         printMenu(terminal);
 
         int option = textIO.newIntInputReader()
-            .withMaxVal(6)
+            .withMaxVal(9)
             .withMinVal(1)
             .read("Option");
         switch (option) {
