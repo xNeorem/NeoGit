@@ -14,6 +14,7 @@ import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Stack;
@@ -95,32 +96,103 @@ public class NeoGit implements GitProtocol{
 
       FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
       futureGet.awaitUninterruptibly();
-      if (futureGet.isSuccess()){
 
-         if(futureGet.isEmpty())
-           this.cashedRepo = new RepositoryP2P(_repo_name,this.user);
+      if(!futureGet.isSuccess()) return false;
+      if(!futureGet.isEmpty()) return false;
 
-         else {
-           this.cashedRepo = (RepositoryP2P) futureGet.dataMap().values().iterator().next()
-               .object();
-           HashMap<File,String> files = this.cashedRepo.getFiles();
-           for(File file : files.keySet())
-             NeoGit.writeFile(directory+"/"+file.getPath(),files.get(file));
-
-         }
-        this.cashedRepo.addPeerAndress(this.peer.peerAddress());
-        this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
-        NeoGit.saveRepo(directoryFile,this.cashedRepo);
-      }
-
+      this.cashedRepo.addPeerAndress(this.peer.peerAddress());
+      this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
+      NeoGit.saveRepo(directoryFile,this.cashedRepo);
 
       this.repos.put(_repo_name,directoryFile);
       NeoGit.saveRepos(new File(this.reposPath),this.repos);
 
     }catch (Exception e){
       e.printStackTrace();
+      return false;
     }
     return true;
+  }
+
+  /**
+   * Clone a remote repository in a directory
+   *
+   * @param _repo_name a String, the name of the repository.
+   * @param _directory a File, the directory where create the repository.
+   * @return true if it is correctly created, false otherwise.
+   */
+  @Override
+  public boolean cloneRepository(String _repo_name, File _directory) {
+    if(_repo_name == null || _directory == null) return false;
+    try{
+
+      String directory = _directory+"/"+_repo_name;
+      File directoryFile = new File(directory);
+
+      if(!(new File(directory+"/data.ng").getParentFile().mkdirs())){
+        return false;
+      }
+
+      FutureGet futureGet = dht.get(Number160.createHash(_repo_name)).start();
+      futureGet.awaitUninterruptibly();
+
+      if(!futureGet.isSuccess()) return false;
+      if(futureGet.isEmpty()) return false;
+
+      this.cashedRepo = (RepositoryP2P) futureGet.dataMap().values().iterator().next()
+          .object();
+      HashMap<File,String> files = this.cashedRepo.getFiles();
+      for(File file : files.keySet())
+        NeoGit.writeFile(directory+"/"+file.getPath(),files.get(file));
+
+      this.cashedRepo.addPeerAndress(this.peer.peerAddress());
+      this.dht.put(Number160.createHash(_repo_name)).data(new Data(this.cashedRepo)).start().awaitUninterruptibly();
+      NeoGit.saveRepo(directoryFile,this.cashedRepo);
+
+      this.repos.put(_repo_name,directoryFile);
+      NeoGit.saveRepos(new File(this.reposPath),this.repos);
+
+    }catch (Exception e){
+      e.printStackTrace();
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Show commits from a local Repository
+   *
+   * @param _repo_name a String, the name of the repository.
+   * @return List<Commit> if made a Commit, null otherwise.
+   */
+  @Override
+  public List<Commit> showLocalHistory(String _repo_name) {
+    if(_repo_name == null ) return null;
+    if(!this.repos.containsKey(_repo_name)) return null;
+
+    if(this.cashedRepo == null || !this.cashedRepo.getName().equals(_repo_name)){
+      this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
+    }
+
+    return this.cashedRepo.getCommits();
+  }
+
+  /**
+   * Show a file present in a Repository
+   *
+   * @param _repo_name a String, the name of the repository.
+   * @return true if file are present, null otherwise.
+   */
+  @Override
+  public List<File> showFileRepository(String _repo_name) {
+    if(_repo_name == null ) return null;
+    if(!this.repos.containsKey(_repo_name)) return null;
+
+    if(this.cashedRepo == null || !this.cashedRepo.getName().equals(_repo_name)){
+      this.cashedRepo = NeoGit.loadRepo(this.repos.get(_repo_name));
+    }
+
+    return new ArrayList<>(this.cashedRepo.getFiles().keySet());
   }
 
   /**

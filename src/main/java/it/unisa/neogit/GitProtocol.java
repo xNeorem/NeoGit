@@ -1,5 +1,6 @@
 package it.unisa.neogit;
 
+import it.unisa.neogit.entity.Commit;
 import java.io.File;
 import java.util.List;
 
@@ -26,6 +27,29 @@ public interface GitProtocol {
    * @return true if it is correctly created, false otherwise.
    */
   public boolean createRepository(String _repo_name, File _directory);
+
+  /**
+   * Clone a remote repository in a directory
+   * @param _repo_name a String, the name of the repository.
+   * @param _directory a File, the directory where create the repository.
+   * @return true if it is correctly created, false otherwise.
+   */
+  public boolean cloneRepository(String _repo_name, File _directory);
+
+  /**
+   * Show commits from a local Repository
+   * @param _repo_name a String, the name of the repository.
+   * @return List<Commit> if made a Commit, null otherwise.
+   */
+  public List<Commit> showLocalHistory(String _repo_name);
+
+  /**
+   * Show a file present in a Repository
+   * @param _repo_name a String, the name of the repository.
+   * @return true if file are present, null otherwise.
+   */
+  public List<File> showFileRepository(String _repo_name);
+
   /**
    * Adds a list of File to the given local repository.
    * @param _repo_name a String, the name of the repository.

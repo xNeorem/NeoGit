@@ -1,5 +1,6 @@
 package it.unisa.neogit;
 
+import it.unisa.neogit.entity.Commit;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -60,6 +61,17 @@ public class NeoGitRunner {
             name = textIO.newStringInputReader()
                 .withDefaultValue("default-repo")
                 .read("Name:");
+            if(neoGit.createRepository(name,new File(dir)))
+              terminal.printf("\nREPOSITORY %s SUCCESSFULLY CLONED\n",name);
+            else
+              terminal.printf("\nERROR WHILE CLONING REPOSITORY\n");
+            break;
+
+          case 3:
+            terminal.printf("\nENTER REPOSITORY NAME\n");
+            name = textIO.newStringInputReader()
+                .withDefaultValue("default-repo")
+                .read("Name:");
             List<File> files = addFiles(terminal,textIO,dir,name);
             if(neoGit.addFilesToRepository(name,files))
               terminal.printf("\nFILES ADDED TO %s\n",name);
@@ -67,7 +79,7 @@ public class NeoGitRunner {
               terminal.printf("\nERROR WHILE ADDING FILE TO %s\n",name);
             break;
 
-          case 3:
+          case 4:
             terminal.printf("\nENTER REPOSITORY NAME\n");
             name = textIO.newStringInputReader()
                 .withDefaultValue("default-repo")
@@ -82,21 +94,41 @@ public class NeoGitRunner {
               terminal.printf("\nERROR WHILE COMMITTING TO %s\n",name);
             break;
 
-          case 4:
-            terminal.printf("\nENTER REPOSITORY NAME\n");
-            name = textIO.newStringInputReader()
-                .withDefaultValue("default-repo")
-                .read("Name:");
-            terminal.printf("\n"+neoGit.push(name)+"\n");
-            break;
           case 5:
             terminal.printf("\nENTER REPOSITORY NAME\n");
             name = textIO.newStringInputReader()
                 .withDefaultValue("default-repo")
                 .read("Name:");
-            terminal.printf("\n"+neoGit.pull(name)+"\n");
+            terminal.printf("\n%s\n",neoGit.push(name));
             break;
           case 6:
+            terminal.printf("\nENTER REPOSITORY NAME\n");
+            name = textIO.newStringInputReader()
+                .withDefaultValue("default-repo")
+                .read("Name:");
+            terminal.printf("\n%s\n",neoGit.pull(name));
+            break;
+          case 7:
+            terminal.printf("\nENTER REPOSITORY NAME\n");
+            name = textIO.newStringInputReader()
+                .withDefaultValue("default-repo")
+                .read("Name:");
+            terminal.printf("\nFILES:\n");
+            for (File file : neoGit.showFileRepository(name))
+              terminal.printf("%s\n",file.getPath());
+
+            break;
+          case 8:
+            terminal.printf("\nENTER REPOSITORY NAME\n");
+            name = textIO.newStringInputReader()
+                .withDefaultValue("default-repo")
+                .read("Name:");
+            terminal.printf("\nCOMMITS:\n");
+            for (Commit commit: neoGit.showLocalHistory(name))
+              terminal.printf("%s %s %s files changed: %d\n",
+                  commit.getUid(),commit.getUser(),commit.getDate(),commit.getFiles().size());
+            break;
+          case 9:
             terminal.printf("\nARE YOU SURE TO LEAVE THE NETWORK?\n");
             boolean exit = textIO.newBooleanInputReader().withDefaultValue(false).read("exit?");
             if(exit) {
@@ -137,11 +169,15 @@ public class NeoGitRunner {
 
   private static void printMenu(TextTerminal terminal) {
     terminal.printf("\n1 - CREATE REPOSITORY\n");
-    terminal.printf("\n2 - ADD FILES\n");
-    terminal.printf("\n3 - COMMIT\n");
-    terminal.printf("\n4 - PUSH\n");
-    terminal.printf("\n5 - PULL\n");
-    terminal.printf("\n6 - EXIT\n");
+    terminal.printf("\n2 - CLONE REPOSITORY\n");
+    terminal.printf("\n3 - ADD FILES\n");
+    terminal.printf("\n4 - COMMIT\n");
+    terminal.printf("\n5 - PUSH\n");
+    terminal.printf("\n6 - PULL\n");
+    terminal.printf("\n7 - REPOSITORY STATUS\n");
+    terminal.printf("\n8 - REPOSITORY LOG\n");
+
+    terminal.printf("\n9 - EXIT\n");
 
   }
 
