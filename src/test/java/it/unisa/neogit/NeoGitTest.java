@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 
 class NeoGitTest {
@@ -62,6 +63,7 @@ class NeoGitTest {
   }
 
   @Test
+  @Order(1)
   void createRepository() {
     assertTrue(master.createRepository(repoName,new File(testDirMaster)));
     assertTrue(peer1.createRepository(repoName,new File(testDirPeer1)));
@@ -70,6 +72,7 @@ class NeoGitTest {
   }
 
   @Test
+  @Order(2)
   void createExistingRepository() {
     assertFalse(master.createRepository(repoName,new File(testDirMaster)));
     assertFalse(peer1.createRepository(repoName,new File(testDirPeer1)));
@@ -78,22 +81,19 @@ class NeoGitTest {
   }
 
   @Test
+  @Order(3)
   void addExistingFilesToRepositoryThatNotExist() {
-    try {
-      addFileToPeer(testDirMaster,"NotExist",files);
 
-      ArrayList<File> fileList = new ArrayList<>(files.length);
-      for (String file : files)
-        fileList.add(new File(file));
+    ArrayList<File> fileList = new ArrayList<>(files.length);
+    for (String file : files)
+      fileList.add(new File(file));
 
-      assertFalse(master.addFilesToRepository(repoName,fileList));
+    assertFalse(master.addFilesToRepository("NotExist",fileList));
 
-    } catch (IOException e) {
-      fail();
-    }
   }
 
   @Test
+  @Order(4)
   void addExistingFilesToRepository() {
     try {
       addFileToPeer(testDirMaster,repoName,files);
@@ -110,6 +110,7 @@ class NeoGitTest {
   }
 
   @Test
+  @Order(5)
   void addNotExistingFilesToRepository() {
 
     ArrayList<File> fileList = new ArrayList<>(files.length);
@@ -128,22 +129,39 @@ class NeoGitTest {
   }
 
   @Test
+  @Order(6)
   void commitToRepositoryThatNotExist() {
     assertFalse(master.commit("NotExist",commitMessage));
   }
 
   @Test
+  @Order(7)
   void commitToRepositoryWithZeroFiles() {
     assertFalse(peer1.commit(repoName,commitMessage));
   }
 
   @Test
+  @Order(8)
   void commitToRepository() {
     assertTrue(master.commit(repoName,commitMessage));
   }
 
   @Test
-  void push() {
+  @Order(9)
+  void pushWithZeroCommits() {
+    assertEquals("Nothing to commit.",peer1.push(repoName));
+  }
+
+  @Test
+  @Order(10)
+  void pushRepositoryThatNotExist() {
+    assertEquals( "Can not push unknown repo\nCreate repository first.",peer1.push("NotExist"));
+  }
+
+  @Test
+  @Order(11)
+  void pushRepository() {
+    assertEquals( "1 commit pushed on "+repoName,master.push(repoName));
   }
 
   @Test
