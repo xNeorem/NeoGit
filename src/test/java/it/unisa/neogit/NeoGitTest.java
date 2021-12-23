@@ -5,9 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class NeoGitTest {
@@ -23,54 +22,59 @@ class NeoGitTest {
 
   private static final String commitMessage = "test commit";
 
-  private static NeoGit master,peer1,peer2,peer3;
+  private NeoGit master,peer1,peer2,peer3;
 
+  public NeoGitTest() throws Exception{
 
-  static void createTestingDir(){
-    new File(testDirMaster).mkdirs();
-    new File(testDirPeer1).mkdirs();
-    new File(testDirPeer2).mkdirs();
-    new File(testDirPeer3).mkdirs();
-  }
+    if(!createSandBox())
+      fail();
 
-  @BeforeAll
-  static void createPeers() throws Exception{
-    createTestingDir();
     master = new NeoGit(0,"127.0.0.1",testDirMaster);
     peer1 = new NeoGit(1,"127.0.0.1",testDirPeer1);
     peer2 = new NeoGit(2,"127.0.0.1",testDirPeer2);
     peer3 = new NeoGit(3,"127.0.0.1",testDirPeer3);
+
   }
 
-  @AfterAll
-  static void deleteTestingDir(){
-    deleteDir(new File(testDir));
+  boolean createSandBox(){
+    boolean result = new File(testDirMaster).mkdirs();
+    result = result && new File(testDirPeer1).mkdirs();
+    result = result && new File(testDirPeer2).mkdirs();
+    result = result && new File(testDirPeer3).mkdirs();
+    return result;
+  }
+
+  @AfterEach
+  void clearSandBox(){
     master.leaveNetwork();
     peer1.leaveNetwork();
     peer2.leaveNetwork();
     peer3.leaveNetwork();
+    if(!deleteDir(new File(testDir)))
+      fail();
 
   }
 
-  static void deleteDir(File file) {
+  static boolean deleteDir(File file) {
     File[] contents = file.listFiles();
+    boolean result = true;
     if (contents != null) {
       for (File f : contents) {
-        deleteDir(f);
+        result = result && deleteDir(f);
       }
     }
-    file.delete();
+    return result && file.delete();
   }
 
   @Test
-  @Order(1)
   void createRepository() {
     assertTrue(master.createRepository(repoName,new File(testDirMaster)));
   }
 
   @Test
-  @Order(2)
   void createExistingRepository() {
+    master.createRepository(repoName,new File(testDirMaster));
+
     assertFalse(master.createRepository(repoName,new File(testDirMaster)));
     assertFalse(peer1.createRepository(repoName,new File(testDirPeer1)));
     assertFalse(peer2.createRepository(repoName,new File(testDirPeer2)));
@@ -78,44 +82,91 @@ class NeoGitTest {
   }
 
   @Test
-  @Order(3)
-  void addExistingFilesToRepositoryThatNotExist() {
+  void addFilesToRepositoryThatNotExist() {
+    master.createRepository(repoName,new File(testDirMaster));
 
-    ArrayList<File> fileList = new ArrayList<>(files.length);
-    for (String file : files)
-      fileList.add(new File(file));
+    ArrayList<File> filesToAdd = new ArrayList<>();
+    for(String name : files)
+      filesToAdd.add(new File(name));
 
-    assertFalse(master.addFilesToRepository("NotExist",fileList));
-
+   assertFalse(master.addFilesToRepository("NotExist",filesToAdd));
   }
 
   @Test
-  @Order(4)
   void addExistingFilesToRepository() {
+
+    master.createRepository(repoName,new File(testDirMaster));
     try {
       addFileToPeer(testDirMaster,repoName,files);
-
-      ArrayList<File> fileList = new ArrayList<>(files.length);
-      for (String file : files)
-        fileList.add(new File(file));
-
-      assertTrue(master.addFilesToRepository(repoName,fileList));
-
     } catch (IOException e) {
+      e.printStackTrace();
       fail();
     }
+
+    ArrayList<File> filesToAdd = new ArrayList<>();
+    for(String name : files)
+      filesToAdd.add(new File(name));
+
+    assertTrue(master.addFilesToRepository(repoName,filesToAdd));
+
+
   }
 
   @Test
-  @Order(5)
   void addNotExistingFilesToRepository() {
 
-    ArrayList<File> fileList = new ArrayList<>(files.length);
-    for (String file : files)
-      fileList.add(new File(file));
+    master.createRepository(repoName,new File(testDirMaster));
 
-    assertFalse(peer1.addFilesToRepository(repoName,fileList));
+    ArrayList<File> filesToAdd = new ArrayList<>();
+    for(String name : files)
+      filesToAdd.add(new File(name));
+
+    assertFalse(master.addFilesToRepository(repoName,filesToAdd));
+
   }
+
+  @Test
+  void commitToRepositoryThatNotExist() {
+
+    master.createRepository(repoName,new File(testDirMaster));
+    try {
+      addFileToPeer(testDirMaster,repoName,files);
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    }
+
+    ArrayList<File> filesToAdd = new ArrayList<>();
+    for(String name : files)
+      filesToAdd.add(new File(name));
+
+    master.addFilesToRepository(repoName,filesToAdd);
+
+    assertTrue(master.commit("NotExist",commitMessage));
+
+  }
+
+  @Test
+  void commitToRepository() {
+
+    master.createRepository(repoName,new File(testDirMaster));
+    try {
+      addFileToPeer(testDirMaster,repoName,files);
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    }
+
+    ArrayList<File> filesToAdd = new ArrayList<>();
+    for(String name : files)
+      filesToAdd.add(new File(name));
+
+    master.addFilesToRepository(repoName,filesToAdd);
+
+    assertTrue(master.commit(repoName,commitMessage));
+
+  }
+
 
 
   static void addFileToPeer(String peer_dir,String repoName, String[] file_paths) throws IOException {
@@ -124,45 +175,33 @@ class NeoGitTest {
       new File(peer_dir +"/"+repoName+ "/" + file_path).createNewFile();
 
   }
-
-  @Test
-  @Order(6)
-  void commitToRepositoryThatNotExist() {
-    assertFalse(master.commit("NotExist",commitMessage));
-  }
-
-  @Test
-  @Order(7)
-  void commitToRepositoryWithZeroFiles() {
-    assertFalse(peer1.commit(repoName,commitMessage));
-  }
-
-  @Test
-  @Order(8)
-  void commitToRepository() {
-    assertTrue(master.commit(repoName,commitMessage));
-  }
-
-  @Test
-  @Order(9)
-  void pushWithZeroCommits() {
-    assertEquals("Nothing to commit.",peer1.push(repoName));
-  }
-
-  @Test
-  @Order(10)
-  void pushRepositoryThatNotExist() {
-    assertEquals( "Can not push unknown repo\nCreate repository first.",peer1.push("NotExist"));
-  }
-
-  @Test
-  @Order(11)
-  void pushRepository() {
-    assertEquals( "1 commit pushed on "+repoName,master.push(repoName));
-  }
-
-  @Test
-  void pull() {
-  }
+//
+//  @Test
+//  void commitToRepositoryThatNotExist() {
+//  }
+//
+//  @Test
+//  void commitToRepositoryWithZeroFiles() {
+//  }
+//
+//  @Test
+//  void commitToRepository() {
+//  }
+//
+//  @Test
+//  void pushWithZeroCommits() {
+//  }
+//
+//  @Test
+//  void pushRepositoryThatNotExist() {
+//  }
+//
+//  @Test
+//  void pushRepository() {
+//  }
+//
+//  @Test
+//  void pull() {
+//  }
 
 }
