@@ -359,10 +359,10 @@ public class NeoGit implements GitProtocol{
     try {
       FutureGet futureGet = this.dht.get(Number160.createHash(_repo_name)).start();
       futureGet.awaitUninterruptibly();
-      if(futureGet.isEmpty())
-        return null;
-      if (futureGet.isSuccess())
-        return (RepositoryP2P) futureGet.dataMap().values().iterator().next().object();
+      if(!futureGet.isSuccess()) return null;
+      if(futureGet.isEmpty()) return null;
+
+      return (RepositoryP2P) futureGet.dataMap().values().iterator().next().object();
     }catch (Exception e) {
       e.printStackTrace();
     }
@@ -403,14 +403,15 @@ public class NeoGit implements GitProtocol{
     Stack<Commit> remoteCommits = remoteRepo.getCommits();
     int remoteCommitsSize = remoteCommits.size();
     int index = localRepo.getCommits().size() - localRepo.getCommitCount();
+    Commit lastRemoteCommit = localRepo.getLastRemoteCommit();
     while(remoteCommitsSize != count){
       Commit commit = remoteCommits.pop();
-      if(commit.getUser().equals(this.user))
+      if(lastRemoteCommit != null && lastRemoteCommit.equals(commit))
         break;
 
       localRepo.addCommit(commit,index);
       count++;
-      index++;
+//      index++;
     }
     localRepo.setHasIncomingChanges(false);
 

@@ -80,6 +80,20 @@ public class RepositoryP2P extends Repository implements Serializable {
 
   }
 
+  public Commit getLastRemoteCommit(){
+
+    Stack<Commit> thisCommits = this.getCommits();
+
+    if(thisCommits.size() - this.commitCount == 0)
+      return null;
+
+    for(int i = 0; i < this.commitCount; i++)
+      thisCommits.pop();
+
+    return thisCommits.pop();
+
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
