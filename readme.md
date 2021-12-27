@@ -133,9 +133,8 @@ _**This operation allows you to easily add a file into the repository.**_
 |:---:|:---:|
 |MASTERIP|the master peer ip address
 |ID|the **unique** id of your peer
-|-i|Keep STDIN open even if not attached
-|-v|Bind mount a volume
-|-e|Set environment variables
+|WB|Working directory path
+
 
 **⚠️ Remember you have to run the master peer using the ID=0.**
 
