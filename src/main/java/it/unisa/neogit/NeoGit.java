@@ -381,7 +381,7 @@ public class NeoGit implements GitProtocol{
     for(File file : incomingFiles.keySet()){
       if(localFiles.containsKey(file)){
         if(!localFiles.get(file).equals(incomingFiles.get(file))){
-          System.out.println("FOUND CONFLIT: "+file.getPath()+" needs a manual fix.");
+          System.out.println("FOUND CONFLIT : "+file.getPath()+" needs a manual fix.");
           int lastDot = file.getPath().lastIndexOf(".");
           String ext = (lastDot != -1) ? file.getPath().substring(lastDot) : "";
           String path = (lastDot != -1) ? file.getPath().substring(0,lastDot) : file.getPath();

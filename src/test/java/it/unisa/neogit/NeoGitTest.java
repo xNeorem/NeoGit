@@ -2,11 +2,13 @@ package it.unisa.neogit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -111,6 +113,9 @@ class NeoGitTest {
       filesToAdd.add(new File(name));
 
    assertFalse(master.addFilesToRepository("NotExist",filesToAdd));
+   assertFalse(peer1.addFilesToRepository(repoName,filesToAdd));
+   assertFalse(peer2.addFilesToRepository(repoName,filesToAdd));
+   assertFalse(peer3.addFilesToRepository(repoName,filesToAdd));
   }
 
   @Test
@@ -118,7 +123,7 @@ class NeoGitTest {
 
     master.createRepository(repoName,new File(testDirMaster));
     try {
-      addFileToPeer(testDirMaster,repoName,files);
+      addFileToPeer(testDirMaster,repoName,files,false);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -151,7 +156,7 @@ class NeoGitTest {
 
     master.createRepository(repoName,new File(testDirMaster));
     try {
-      addFileToPeer(testDirMaster,repoName,files);
+      addFileToPeer(testDirMaster,repoName,files,false);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -172,7 +177,7 @@ class NeoGitTest {
 
     master.createRepository(repoName,new File(testDirMaster));
     try {
-      addFileToPeer(testDirMaster,repoName,files);
+      addFileToPeer(testDirMaster,repoName,files,false);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -193,7 +198,7 @@ class NeoGitTest {
 
     master.createRepository(repoName,new File(testDirMaster));
     try {
-      addFileToPeer(testDirMaster,repoName,files);
+      addFileToPeer(testDirMaster,repoName,files,false);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -207,6 +212,9 @@ class NeoGitTest {
     master.commit(repoName,commitMessage);
 
     assertEquals("Can not push unknown repo\nCreate repository first.",master.push("NotExist"));
+    assertEquals("Can not push unknown repo\nCreate repository first.",peer1.push(repoName));
+    assertEquals("Can not push unknown repo\nCreate repository first.",peer2.push(repoName));
+    assertEquals("Can not push unknown repo\nCreate repository first.",peer3.push(repoName));
 
   }
 
@@ -223,7 +231,7 @@ class NeoGitTest {
 
     master.createRepository(repoName,new File(testDirMaster));
     try {
-      addFileToPeer(testDirMaster,repoName,files);
+      addFileToPeer(testDirMaster,repoName,files,false);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -249,7 +257,7 @@ class NeoGitTest {
     peer3.cloneRepository(repoName,new File(testDirPeer3));
 
     try {
-      addFileToPeer(testDirMaster,repoName,files);
+      addFileToPeer(testDirMaster,repoName,files,false);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -277,8 +285,8 @@ class NeoGitTest {
     master.cloneRepository(repoName,new File(testDirPeer1));
 
     try {
-      addFileToPeer(testDirMaster,repoName,files);
-      addFileToPeer(testDirPeer1,repoName,files);
+      addFileToPeer(testDirMaster,repoName,files,false);
+      addFileToPeer(testDirPeer1,repoName,files,false);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -306,8 +314,8 @@ class NeoGitTest {
     master.cloneRepository(repoName,new File(testDirPeer1));
 
     try {
-      addFileToPeer(testDirMaster,repoName,files);
-      addFileToPeer(testDirPeer1,repoName,files);
+      addFileToPeer(testDirMaster,repoName,files,true);
+      addFileToPeer(testDirPeer1,repoName,files,true);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -342,10 +350,10 @@ class NeoGitTest {
     String[] peer3file = new String[]{NeoGitTest.files[3]};
 
     try {
-      addFileToPeer(testDirMaster,repoName,masterFile);
-      addFileToPeer(testDirPeer1,repoName,peer1file);
-      addFileToPeer(testDirPeer2,repoName,peer2file);
-      addFileToPeer(testDirPeer3,repoName,peer3file);
+      addFileToPeer(testDirMaster,repoName,masterFile,true);
+      addFileToPeer(testDirPeer1,repoName,peer1file,true);
+      addFileToPeer(testDirPeer2,repoName,peer2file,true);
+      addFileToPeer(testDirPeer3,repoName,peer3file,true);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -415,10 +423,10 @@ class NeoGitTest {
     String[] peer3file = new String[]{NeoGitTest.files[2],NeoGitTest.files[3]};
 
     try {
-      addFileToPeer(testDirMaster,repoName,masterFile);
-      addFileToPeer(testDirPeer1,repoName,peer1file);
-      addFileToPeer(testDirPeer2,repoName,peer2file);
-      addFileToPeer(testDirPeer3,repoName,peer3file);
+      addFileToPeer(testDirMaster,repoName,masterFile,true);
+      addFileToPeer(testDirPeer1,repoName,peer1file,true);
+      addFileToPeer(testDirPeer2,repoName,peer2file,true);
+      addFileToPeer(testDirPeer3,repoName,peer3file,true);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -487,8 +495,8 @@ class NeoGitTest {
     String[] peer3file = new String[]{NeoGitTest.files[2],NeoGitTest.files[3]};
 
     try {
-      addFileToPeer(testDirMaster,repoName,masterFile);
-      addFileToPeer(testDirPeer1,repoName,peer1file);
+      addFileToPeer(testDirMaster,repoName,masterFile,true);
+      addFileToPeer(testDirPeer1,repoName,peer1file,true);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -515,7 +523,7 @@ class NeoGitTest {
 
     peer2.cloneRepository(repoName,new File(testDirPeer2));
     try {
-      addFileToPeer(testDirPeer2,repoName,peer2file);
+      addFileToPeer(testDirPeer2,repoName,peer2file,true);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -531,7 +539,7 @@ class NeoGitTest {
 
     peer3.cloneRepository(repoName,new File(testDirPeer3));
     try {
-      addFileToPeer(testDirPeer3,repoName,peer3file);
+      addFileToPeer(testDirPeer3,repoName,peer3file,true);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -568,8 +576,8 @@ class NeoGitTest {
     String[] peer3file = new String[]{NeoGitTest.files[2],NeoGitTest.files[3]};
 
     try {
-      addFileToPeer(testDirMaster,repoName,masterFile);
-      addFileToPeer(testDirPeer1,repoName,peer1file);
+      addFileToPeer(testDirMaster,repoName,masterFile,true);
+      addFileToPeer(testDirPeer1,repoName,peer1file,true);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -585,7 +593,7 @@ class NeoGitTest {
     assertEquals("1 commit pushed on "+repoName,master.push(repoName));
     peer2.cloneRepository(repoName,new File(testDirPeer2));
     try {
-      addFileToPeer(testDirPeer2,repoName,peer2file);
+      addFileToPeer(testDirPeer2,repoName,peer2file,true);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -601,7 +609,7 @@ class NeoGitTest {
 
     peer3.cloneRepository(repoName,new File(testDirPeer3));
     try {
-      addFileToPeer(testDirPeer3,repoName,peer3file);
+      addFileToPeer(testDirPeer3,repoName,peer3file,true);
     } catch (IOException e) {
       e.printStackTrace();
       fail();
@@ -633,16 +641,110 @@ class NeoGitTest {
 
   }
 
+  @Test
+  void operationUsing4peer5(){
+
+    peer3.createRepository(repoName,new File(testDirPeer3));
 
 
+    String[] masterFile = new String[]{NeoGitTest.files[0]};
+    String[] peer1file = new String[]{NeoGitTest.files[1],NeoGitTest.files[0]};
+    String[] peer2file = new String[]{NeoGitTest.files[2]};
+    String[] peer3file = new String[]{NeoGitTest.files[3],NeoGitTest.files[1]};
+
+    try {
+      addFileToPeer(testDirPeer3,repoName,peer3file,true);
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    }
+
+    ArrayList<File> filesToAddPeer3 = new ArrayList<>();
+    for(String name : peer1file)
+      filesToAddPeer3.add(new File(name));
+
+    peer3.addFilesToRepository(repoName,filesToAddPeer3);
+    peer3.commit(repoName,commitMessage);
 
 
+    assertEquals("1 commit pushed on "+repoName,peer3.push(repoName));
+    assertEquals("Nothing to commit.",peer3.push(repoName));
 
-  static void addFileToPeer(String peer_dir,String repoName, String[] file_paths) throws IOException {
 
-    for (String file_path : file_paths)
-      new File(peer_dir +"/"+repoName+ "/" + file_path).createNewFile();
+    peer2.cloneRepository(repoName,new File(testDirPeer2));
+    master.cloneRepository(repoName,new File(testDirMaster));
+    try {
+      addFileToPeer(testDirPeer2,repoName,peer2file,true);
+      addFileToPeer(testDirMaster,repoName,masterFile,true);
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    }
+    ArrayList<File> filesToAddPeer2 = new ArrayList<>();
+    for(String name : peer2file)
+      filesToAddPeer2.add(new File(name));
+
+    peer2.addFilesToRepository(repoName,filesToAddPeer2);
+    peer2.commit(repoName,commitMessage);
+
+    assertEquals("1 commit pushed on "+repoName,peer2.push(repoName));
+
+    ArrayList<File> filesToAddMaster = new ArrayList<>();
+    for(String name : masterFile)
+      filesToAddMaster.add(new File(name));
+
+
+    master.addFilesToRepository(repoName,filesToAddMaster);
+    assertEquals("Nothing to commit.",master.push(repoName));
+    master.commit(repoName,commitMessage);
+    assertEquals(repoName+" is not up to date\nPull new changes.",master.push(repoName));
+    assertEquals("1 new commit on "+repoName,master.pull(repoName));
+
+
+    peer1.cloneRepository(repoName,new File(testDirPeer1));
+    try {
+      addFileToPeer(testDirPeer3,repoName,peer3file,true);
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    }
+    ArrayList<File> filesToAddPeer1 = new ArrayList<>();
+    for(String name : peer3file)
+      filesToAddPeer1.add(new File(name));
+
+    peer1.addFilesToRepository(repoName,filesToAddPeer1);
+    peer1.commit(repoName,commitMessage);
+    assertEquals("1 commit pushed on "+repoName,peer1.push(repoName));
+
+    assertEquals(repoName+" is not up to date\nPull new changes.",master.push(repoName));
+    assertEquals("1 new commit on "+repoName,master.pull(repoName));
+    assertEquals("1 commit pushed on "+repoName,master.push(repoName));
 
   }
+
+
+
+
+  static void addFileToPeer(String peer_dir,String repoName, String[] file_paths,boolean populate) throws IOException {
+
+    for (String file_path : file_paths) {
+      File file = new File(peer_dir + "/" + repoName + "/" + file_path);
+      file.createNewFile();
+      if(populate){
+        FileWriter fw = new FileWriter(file.getAbsoluteFile());
+        BufferedWriter bw = new BufferedWriter(fw);
+
+        // Write in file
+        bw.write(UUID.randomUUID().toString());
+
+        // Close connection
+        bw.close();
+      }
+    }
+
+
+  }
+
+
 
 }
