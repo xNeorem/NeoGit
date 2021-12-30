@@ -99,6 +99,12 @@ The functionality test was done through the jUnit library. For the execution of 
 In fact, each test case uses a unique test repository for that test, so as not to be affected by other executions. A directory for each peer is created before the tests are run. This allows you to prevent files written by one peer from conflicting with those of some other peer. At the end of the test run these directories are removed.
 Finally, to simulate the creation of files and their contents, an ad-hoc method has been developed which creates a file and, if required, populates it with a unique string.
 
+*19 test cases were developed. 
+The first go to verify the basic functionality of the project. Instead, the last ones use 4 peers, performing an interleaving of operations and go to verify that in the end each peer is in the right state.*
+
+*You can view test class [here](./src/test/java/it/unisa/neogit/NeoGitTest.java).*
+
+
 How to run
 ======
 
