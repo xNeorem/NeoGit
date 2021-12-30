@@ -120,14 +120,14 @@ First you have to build your docker container:
 
 After that you can start the master peer using the below command:
 
-```docker run -i --rm -v $pwd/master:/home --name MASTER -e MASTERIP="127.0.0.1" -e ID=0 -e WB=/home neogit```
+```docker run -i --rm --mount src="$(pwd)"/master,target=/home,type=bind --name MASTER -e MASTERIP="127.0.0.1" -e ID=0 -e WB=/home neogit```
 
 |options|Description|
 |:---:|:---:|
 |--rm|Automatically remove the container when it exits
 |--name|Assign a name to the container
+|--mount|Attach a filesystem mount to the container
 |-i|Keep STDIN open even if not attached
-|-v|Bind mount a volume
 |-e|Set environment variables
 
 **🛠️ --rm and -v they can be optional**
@@ -156,7 +156,7 @@ When master is started you have to check the ip address of your container:
 
 Now you can start your peers varying the unique peer id:
 
-```docker run -i --rm -v $pwd/peer-1:/home --name PEER-1 -e MASTERIP="172.17.0.2" -e ID=1 -e WB=/home neogit```
+```docker run -i --rm --mount src="$(pwd)"/peer-1,target=/home,type=bind --name PEER-1 -e MASTERIP="172.17.0.2" -e ID=1 -e WB=/home neogit```
 
 **Note that**: after the first launch **if you haven't used the --rm flag**, you can launch the master node using the following command:
 ```docker start -i PEER-1```.

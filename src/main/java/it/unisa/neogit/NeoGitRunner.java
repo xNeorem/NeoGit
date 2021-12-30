@@ -61,7 +61,7 @@ public class NeoGitRunner {
             name = textIO.newStringInputReader()
                 .withDefaultValue("default-repo")
                 .read("Name:");
-            if(neoGit.createRepository(name,new File(dir)))
+            if(neoGit.cloneRepository(name,new File(dir)))
               terminal.printf("\nREPOSITORY %s SUCCESSFULLY CLONED\n",name);
             else
               terminal.printf("\nERROR WHILE CLONING REPOSITORY\n");
